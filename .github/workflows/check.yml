@@ -8,11 +8,18 @@ on:
 permissions:
   contents: write
 
+# Aynı anda yalnızca bir çalıştırma; yenisi gelirse eskisini iptal et
+concurrency:
+  group: flight-watcher
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -28,4 +35,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add seen.json
           git commit -m "update seen state [skip ci]" || echo "no changes"
+          git pull --rebase origin main || true
           git push
