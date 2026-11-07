@@ -11,12 +11,22 @@ FEEDS = {
     "secretflying": "https://www.secretflying.com/feed/",
     "theflightdeal": "https://www.theflightdeal.com/feed/",
     "fly4free": "https://www.fly4free.pl/feed/",
+    "faredealalert": "http://faredealalert.com/feed/",
+    "holidaypirates": "https://www.holidaypirates.com/feed",
+    "flyertalk_mileagerun": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=372",
+    "flyertalk_premium": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=740",
+    "thriftytraveler": "https://thriftytraveler.com/feed/",
 }
 
 SOURCE_LABELS = {
     "secretflying": "Secret Flying",
     "theflightdeal": "The Flight Deal",
     "fly4free": "Fly4Free",
+    "faredealalert": "Fare Deal Alert",
+    "holidaypirates": "Holiday Pirates",
+    "flyertalk_mileagerun": "FlyerTalk Mileage Run",
+    "flyertalk_premium": "FlyerTalk Premium Fares",
+    "thriftytraveler": "Thrifty Traveler",
 }
 
 SEEN_FILE = "seen.json"
@@ -25,15 +35,17 @@ TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 # Kalkış filtresi
-KEYWORDS_SUBSTR = ["istanbul", "sabiha", "saw", "türkiye", "turkey", "stambuł"]
-KEYWORDS_REGEX = [r"\bIST\b"]
+KEYWORDS_SUBSTR = [
+    "istanbul", "sabiha", "saw", "türkiye", "turkey",
+    "stambuł",  # Fly4Free (Lehçe) için
+]
+KEYWORDS_REGEX = [r"\bIST\b", r"\bSAW\b"]
 
 MAX_NOTIFY = 5
 
 
 # --- seen.json yönetimi (kaynak bazlı) ---
 def load_seen():
-    """dict[str, set[str]] döndürür. Eski düz liste formatını da migrate eder."""
     if not os.path.exists(SEEN_FILE):
         return {}
     try:
@@ -42,7 +54,6 @@ def load_seen():
     except (json.JSONDecodeError, OSError):
         return {}
 
-    # Eski format: düz liste -> "secretflying" altına taşı
     if isinstance(data, list):
         return {"secretflying": set(data)}
 
@@ -94,17 +105,20 @@ def main():
 
     total_entries = 0
     total_matched = 0
-    new_items = []  # (source, title, link)
+    new_items = []
+    source_stats = {}
 
     for source, url in FEEDS.items():
         try:
             feed = feedparser.parse(url)
         except Exception as e:
             print(f"[{source}] parse error: {e}")
+            source_stats[source] = "error"
             continue
 
         entries = feed.entries or []
         total_entries += len(entries)
+        source_stats[source] = len(entries)
 
         if not entries:
             print(f"[{source}] feed boş veya okunamadı.")
@@ -165,9 +179,10 @@ def main():
 
     print(
         f"Feeds: {len(FEEDS)}, entries: {total_entries}, "
-        f"matched: {total_matched}, new: {len(new_items)}, "
-        f"sources in seen: {sorted(seen.keys())}"
+        f"matched: {total_matched}, new: {len(new_items)}"
     )
+    print("Per-source entries:", source_stats)
+    print("Sources in seen:", sorted(seen.keys()))
 
 
 if __name__ == "__main__":
