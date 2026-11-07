@@ -11,7 +11,7 @@ FEEDS = {
     "secretflying": "https://www.secretflying.com/feed/",
     "theflightdeal": "https://www.theflightdeal.com/feed/",
     "fly4free": "https://www.fly4free.pl/feed/",
-    "faredealalert": "http://faredealalert.com/feed/",
+    "faredealalert": "https://faredealalert.com/feed/",
     "holidaypirates": "https://www.holidaypirates.com/feed",
     "flyertalk_mileagerun": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=372",
     "flyertalk_premium": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=740",
@@ -37,14 +37,28 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 # Kalkış filtresi
 KEYWORDS_SUBSTR = [
     "istanbul", "sabiha", "saw", "türkiye", "turkey",
-    "stambuł",  # Fly4Free (Lehçe) için
+    "stambuł",
 ]
 KEYWORDS_REGEX = [r"\bIST\b", r"\bSAW\b"]
 
 MAX_NOTIFY = 5
 
+# Bot korumasını aşmak için gerçekçi tarayıcı kimliği
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/rss+xml, application/xml, text/xml, */*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9,tr;q=0.8",
+    "Cache-Control": "no-cache",
+}
 
-# --- seen.json yönetimi (kaynak bazlı) ---
+REQUEST_TIMEOUT = 20
+
+
+# --- seen.json yönetimi ---
 def load_seen():
     if not os.path.exists(SEEN_FILE):
         return {}
@@ -99,6 +113,39 @@ def matches_istanbul(haystack):
     return any(re.search(pat, haystack, re.IGNORECASE) for pat in KEYWORDS_REGEX)
 
 
+# --- Feed çekme: önce requests, sonra feedparser ---
+def fetch_feed(url):
+    """
+    Returns (feed_obj, status_info).
+    feed_obj: feedparser sonucu (entries dolu veya boş)
+    status_info: log için kısa string
+    """
+    # 1. requests ile çek (User-Agent + HTTP durum kodu görünür)
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        status = resp.status_code
+        if status == 200:
+            feed = feedparser.parse(resp.content)
+            if feed.entries:
+                return feed, f"HTTP 200 ({len(feed.entries)} entries)"
+            # 200 ama boş/parse edilemiyor
+            return feed, f"HTTP 200 ama boş içerik"
+        if status in (403, 503):
+            return None, f"HTTP {status} (bot koruması)"
+        return None, f"HTTP {status}"
+    except requests.exceptions.RequestException as e:
+        print(f"  requests error: {e}")
+        # 2. Fallback: feedparser doğrudan denesin
+        try:
+            feed = feedparser.parse(url, agent=HEADERS["User-Agent"])
+            if feed.entries:
+                return feed, f"fallback feedparser ({len(feed.entries)} entries)"
+            return feed, "fallback boş"
+        except Exception as e2:
+            print(f"  feedparser fallback error: {e2}")
+            return None, "bağlantı hatası"
+
+
 def main():
     first_run = not os.path.exists(SEEN_FILE)
     seen = load_seen()
@@ -107,22 +154,22 @@ def main():
     total_matched = 0
     new_items = []
     source_stats = {}
+    source_status = {}
 
     for source, url in FEEDS.items():
-        try:
-            feed = feedparser.parse(url)
-        except Exception as e:
-            print(f"[{source}] parse error: {e}")
-            source_stats[source] = "error"
+        print(f"[{source}] fetching {url}")
+        feed, status = fetch_feed(url)
+        source_status[source] = status
+
+        if feed is None or not feed.entries:
+            print(f"[{source}] okunamadı: {status}")
+            source_stats[source] = 0
             continue
 
-        entries = feed.entries or []
-        total_entries += len(entries)
+        entries = feed.entries
         source_stats[source] = len(entries)
-
-        if not entries:
-            print(f"[{source}] feed boş veya okunamadı.")
-            continue
+        total_entries += len(entries)
+        print(f"[{source}] {status}")
 
         source_seen = seen.setdefault(source, set())
 
@@ -136,7 +183,6 @@ def main():
                 continue
 
             total_matched += 1
-
             item_id = link if link else hashlib.md5(title.encode("utf-8")).hexdigest()
 
             if item_id in source_seen:
@@ -177,11 +223,11 @@ def main():
 
     save_seen(seen)
 
-    print(
-        f"Feeds: {len(FEEDS)}, entries: {total_entries}, "
-        f"matched: {total_matched}, new: {len(new_items)}"
-    )
+    print("=" * 60)
+    print(f"Feeds: {len(FEEDS)}, entries: {total_entries}, "
+          f"matched: {total_matched}, new: {len(new_items)}")
     print("Per-source entries:", source_stats)
+    print("Per-source status:", source_status)
     print("Sources in seen:", sorted(seen.keys()))
 
 
