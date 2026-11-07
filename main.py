@@ -6,27 +6,28 @@ import re
 import feedparser
 import requests
 
-# --- Kaynaklar ---
+# --- Kaynaklar (şu an aktif olan 5 sağlam kaynak) ---
 FEEDS = {
-    "secretflying": "https://www.secretflying.com/feed/",
     "theflightdeal": "https://www.theflightdeal.com/feed/",
     "fly4free": "https://www.fly4free.pl/feed/",
     "faredealalert": "https://faredealalert.com/feed/",
     "holidaypirates": "https://www.holidaypirates.com/feed",
-    "flyertalk_mileagerun": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=372",
-    "flyertalk_premium": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=740",
     "thriftytraveler": "https://thriftytraveler.com/feed/",
+    # --- Cloudflare engeli nedeniyle devre dışı ---
+    # "secretflying": "https://www.secretflying.com/feed/",
+    # "flyertalk_mileagerun": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=372",
+    # "flyertalk_premium": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=740",
 }
 
 SOURCE_LABELS = {
-    "secretflying": "Secret Flying",
     "theflightdeal": "The Flight Deal",
     "fly4free": "Fly4Free",
     "faredealalert": "Fare Deal Alert",
     "holidaypirates": "Holiday Pirates",
+    "thriftytraveler": "Thrifty Traveler",
+    "secretflying": "Secret Flying",
     "flyertalk_mileagerun": "FlyerTalk Mileage Run",
     "flyertalk_premium": "FlyerTalk Premium Fares",
-    "thriftytraveler": "Thrifty Traveler",
 }
 
 SEEN_FILE = "seen.json"
@@ -34,16 +35,11 @@ SEEN_FILE = "seen.json"
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# Kalkış filtresi
-KEYWORDS_SUBSTR = [
-    "istanbul", "sabiha", "saw", "türkiye", "turkey",
-    "stambuł",
-]
+KEYWORDS_SUBSTR = ["istanbul", "sabiha", "saw", "türkiye", "turkey", "stambuł"]
 KEYWORDS_REGEX = [r"\bIST\b", r"\bSAW\b"]
 
 MAX_NOTIFY = 5
 
-# Bot korumasını aşmak için gerçekçi tarayıcı kimliği
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -54,11 +50,9 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9,tr;q=0.8",
     "Cache-Control": "no-cache",
 }
-
 REQUEST_TIMEOUT = 20
 
 
-# --- seen.json yönetimi ---
 def load_seen():
     if not os.path.exists(SEEN_FILE):
         return {}
@@ -67,17 +61,10 @@ def load_seen():
             data = json.load(f)
     except (json.JSONDecodeError, OSError):
         return {}
-
     if isinstance(data, list):
         return {"secretflying": set(data)}
-
     if isinstance(data, dict):
-        result = {}
-        for source, ids in data.items():
-            if isinstance(ids, list):
-                result[source] = set(ids)
-        return result
-
+        return {s: set(ids) for s, ids in data.items() if isinstance(ids, list)}
     return {}
 
 
@@ -87,18 +74,13 @@ def save_seen(seen):
         json.dump(serializable, f, ensure_ascii=False, indent=2, sort_keys=True)
 
 
-# --- Bildirim ---
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
         r = requests.post(
             url,
-            json={
-                "chat_id": CHAT_ID,
-                "text": text,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True,
-            },
+            json={"chat_id": CHAT_ID, "text": text,
+                  "parse_mode": "HTML", "disable_web_page_preview": True},
             timeout=15,
         )
         if r.status_code != 200:
@@ -113,33 +95,23 @@ def matches_istanbul(haystack):
     return any(re.search(pat, haystack, re.IGNORECASE) for pat in KEYWORDS_REGEX)
 
 
-# --- Feed çekme: önce requests, sonra feedparser ---
 def fetch_feed(url):
-    """
-    Returns (feed_obj, status_info).
-    feed_obj: feedparser sonucu (entries dolu veya boş)
-    status_info: log için kısa string
-    """
-    # 1. requests ile çek (User-Agent + HTTP durum kodu görünür)
     try:
         resp = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-        status = resp.status_code
-        if status == 200:
+        if resp.status_code == 200:
             feed = feedparser.parse(resp.content)
             if feed.entries:
                 return feed, f"HTTP 200 ({len(feed.entries)} entries)"
-            # 200 ama boş/parse edilemiyor
-            return feed, f"HTTP 200 ama boş içerik"
-        if status in (403, 503):
-            return None, f"HTTP {status} (bot koruması)"
-        return None, f"HTTP {status}"
+            return feed, "HTTP 200 ama boş içerik"
+        if resp.status_code in (403, 503):
+            return None, f"HTTP {resp.status_code} (bot koruması)"
+        return None, f"HTTP {resp.status_code}"
     except requests.exceptions.RequestException as e:
         print(f"  requests error: {e}")
-        # 2. Fallback: feedparser doğrudan denesin
         try:
             feed = feedparser.parse(url, agent=HEADERS["User-Agent"])
             if feed.entries:
-                return feed, f"fallback feedparser ({len(feed.entries)} entries)"
+                return feed, f"fallback ({len(feed.entries)} entries)"
             return feed, "fallback boş"
         except Exception as e2:
             print(f"  feedparser fallback error: {e2}")
@@ -157,7 +129,6 @@ def main():
     source_status = {}
 
     for source, url in FEEDS.items():
-        print(f"[{source}] fetching {url}")
         feed, status = fetch_feed(url)
         source_status[source] = status
 
@@ -184,14 +155,12 @@ def main():
 
             total_matched += 1
             item_id = link if link else hashlib.md5(title.encode("utf-8")).hexdigest()
-
             if item_id in source_seen:
                 continue
 
             source_seen.add(item_id)
             new_items.append((source, title, link))
 
-    # --- Bildirimler ---
     if first_run:
         if new_items:
             by_source = {}
@@ -202,8 +171,7 @@ def main():
             )
             send_telegram(
                 f"✅ Sistem kuruldu. Toplam {len(new_items)} İstanbul fırsatı "
-                f"bulundu ({breakdown}); 'görüldü' olarak işaretlendi. "
-                f"Yenilerde haber vereceğim."
+                f"bulundu ({breakdown}); 'görüldü' işaretlendi. Yenilerde haber vereceğim."
             )
         else:
             send_telegram(
