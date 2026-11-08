@@ -128,20 +128,16 @@ def fetch_feed(url):
 
 
 def check_google_flights(origin, destination, date_str):
-    """
-    swoop-flights ile Google Flights fiyatlarını çeker.
-    Dönen: (min_price, avg_price, sample_airlines) veya None
-    """
+    """swoop-flights (0.4.x+) ile Google Flights fiyatlarını çeker."""
     try:
         results = swoop_search(origin, destination, date_str)
-
-        # Doğru alanlar: results.best ve results.other
-        itineraries = results.best + results.other
-        if not itineraries:
+        
+        # Yeni API: results.results (TripOption listesi)
+        if not results.results:
             print(f"  [GF] {origin}->{destination} {date_str}: sonuç yok")
             return None
 
-        prices = [it.price for it in itineraries if it.price]
+        prices = [opt.price for opt in results.results if opt.price]
         if not prices:
             print(f"  [GF] {origin}->{destination} {date_str}: fiyat yok")
             return None
@@ -150,15 +146,15 @@ def check_google_flights(origin, destination, date_str):
         avg_price = sum(prices) / len(prices)
 
         airlines = set()
-        for it in itineraries[:5]:
-            if it.airline_names:
-                airlines.add(it.airline_names)
+        for opt in results.results[:5]:
+            for leg in opt.legs:
+                if leg.itinerary and leg.itinerary.airline_names:
+                    airlines.add(tuple(leg.itinerary.airline_names))
 
         print(f"  [GF] {origin}->{destination} {date_str}: "
               f"min=${min_price}, avg=${avg_price:.0f}, "
               f"options={len(prices)}, airlines={airlines}")
         return min_price, avg_price, airlines
-
     except Exception as e:
         print(f"  [GF] {origin}->{destination} {date_str} hata: {e}")
         return None
@@ -195,6 +191,12 @@ def main():
             link = entry.get("link", "")
             summary = entry.get("summary", "")
             haystack = f"{title} {summary}"
+
+            if source == "reddit_awardtravel":
+                tags = entry.get("tags", [])
+                tag_terms = [t.get("term", "").lower() for t in tags]
+                if not any("deal" in term for term in tag_terms):
+                    continue
 
             if not matches_istanbul(haystack):
                 continue
