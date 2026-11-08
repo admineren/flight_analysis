@@ -5,15 +5,17 @@ import html
 import re
 import feedparser
 import requests
+from swoop import search as swoop_search  # Google Flights
 
-# --- Kaynaklar (şu an aktif olan 5 sağlam kaynak) ---
+# --- Kaynaklar ---
 FEEDS = {
     "theflightdeal": "https://www.theflightdeal.com/feed/",
     "fly4free": "https://www.fly4free.pl/feed/",
     "faredealalert": "https://faredealalert.com/feed/",
     "holidaypirates": "https://www.holidaypirates.com/feed",
     "thriftytraveler": "https://thriftytraveler.com/feed/",
-    # --- Cloudflare engeli nedeniyle devre dışı ---
+    "reddit_awardtravel": "https://www.reddit.com/r/awardtravel/.rss",
+    # Cloudflare engeli nedeniyle devre dışı:
     # "secretflying": "https://www.secretflying.com/feed/",
     # "flyertalk_mileagerun": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=372",
     # "flyertalk_premium": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=740",
@@ -25,6 +27,7 @@ SOURCE_LABELS = {
     "faredealalert": "Fare Deal Alert",
     "holidaypirates": "Holiday Pirates",
     "thriftytraveler": "Thrifty Traveler",
+    "reddit_awardtravel": "Reddit r/awardtravel",
     "secretflying": "Secret Flying",
     "flyertalk_mileagerun": "FlyerTalk Mileage Run",
     "flyertalk_premium": "FlyerTalk Premium Fares",
@@ -51,6 +54,12 @@ HEADERS = {
     "Cache-Control": "no-cache",
 }
 REQUEST_TIMEOUT = 20
+
+# Google Flights demo: bu rotaları test amaçlı sorgular
+GOOGLE_FLIGHTS_DEMO_ROUTES = [
+    ("IST", "LHR", "2026-12-15"),
+    ("IST", "CDG", "2026-12-20"),
+]
 
 
 def load_seen():
@@ -118,6 +127,39 @@ def fetch_feed(url):
             return None, "bağlantı hatası"
 
 
+def check_google_flights(origin, destination, date_str):
+    """
+    swoop-flights ile Google Flights fiyatlarını çeker.
+    Dönen: (min_price, avg_price, sample_airlines) veya None
+    """
+    try:
+        results = swoop_search(origin, destination, date_str)
+        if not results.results:
+            print(f"  [GF] {origin}->{destination} {date_str}: sonuç yok")
+            return None
+
+        prices = [opt.price for opt in results.results if opt.price]
+        if not prices:
+            print(f"  [GF] {origin}->{destination} {date_str}: fiyat yok")
+            return None
+
+        min_price = min(prices)
+        avg_price = sum(prices) / len(prices)
+        airlines = set()
+        for opt in results.results[:5]:
+            for leg in opt.legs:
+                if leg.itinerary:
+                    airlines.add(leg.itinerary.airline_names)
+
+        print(f"  [GF] {origin}->{destination} {date_str}: "
+              f"min=${min_price}, avg=${avg_price:.0f}, "
+              f"options={len(prices)}, airlines={airlines}")
+        return min_price, avg_price, airlines
+    except Exception as e:
+        print(f"  [GF] {origin}->{destination} {date_str} hata: {e}")
+        return None
+
+
 def main():
     first_run = not os.path.exists(SEEN_FILE)
     seen = load_seen()
@@ -161,6 +203,12 @@ def main():
             source_seen.add(item_id)
             new_items.append((source, title, link))
 
+    # --- Google Flights test (sadece loglara yazar, Telegram'a göndermez) ---
+    print("\n--- Google Flights demo ---")
+    for origin, destination, date_str in GOOGLE_FLIGHTS_DEMO_ROUTES:
+        check_google_flights(origin, destination, date_str)
+
+    # --- Bildirimler ---
     if first_run:
         if new_items:
             by_source = {}
