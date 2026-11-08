@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import requests
+from curl_cffi import requests as curl_requests
 
 WATCH_FILE = "campaign_watch.json"
 STATE_FILE = "campaign_state.json"
@@ -51,9 +52,14 @@ def send_telegram(text):
 
 
 def fetch_page(url):
-    resp = requests.get(url, headers=HEADERS, timeout=25)
-    resp.raise_for_status()
-    return resp.text
+    try:
+        # impersonate="chrome" ile gerçek bir Chrome tarayıcısının TLS parmak izini taklit eder
+        resp = curl_requests.get(url, impersonate="chrome", timeout=45)
+        resp.raise_for_status()
+        return resp.text
+    except Exception as e:
+        # Hata durumunda daha anlaşılır bir mesaj fırlat
+        raise Exception(f"{type(e).__name__}: {e}")
 
 
 def main():
