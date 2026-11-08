@@ -134,27 +134,31 @@ def check_google_flights(origin, destination, date_str):
     """
     try:
         results = swoop_search(origin, destination, date_str)
-        if not results.results:
+
+        # Doğru alanlar: results.best ve results.other
+        itineraries = results.best + results.other
+        if not itineraries:
             print(f"  [GF] {origin}->{destination} {date_str}: sonuç yok")
             return None
 
-        prices = [opt.price for opt in results.results if opt.price]
+        prices = [it.price for it in itineraries if it.price]
         if not prices:
             print(f"  [GF] {origin}->{destination} {date_str}: fiyat yok")
             return None
 
         min_price = min(prices)
         avg_price = sum(prices) / len(prices)
+
         airlines = set()
-        for opt in results.results[:5]:
-            for leg in opt.legs:
-                if leg.itinerary:
-                    airlines.add(leg.itinerary.airline_names)
+        for it in itineraries[:5]:
+            if it.airline_names:
+                airlines.add(it.airline_names)
 
         print(f"  [GF] {origin}->{destination} {date_str}: "
               f"min=${min_price}, avg=${avg_price:.0f}, "
               f"options={len(prices)}, airlines={airlines}")
         return min_price, avg_price, airlines
+
     except Exception as e:
         print(f"  [GF] {origin}->{destination} {date_str} hata: {e}")
         return None
