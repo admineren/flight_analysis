@@ -1,17 +1,16 @@
 import os
 import json
 import re
+import html as html_lib
+from urllib.parse import urljoin
 from curl_cffi import requests as curl_requests
+from bs4 import BeautifulSoup
 
 WATCH_FILE = "campaign_watch.json"
 STATE_FILE = "campaign_state.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-
-HEADERS = {
-    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
-}
 
 
 def load_state():
@@ -31,12 +30,8 @@ def send_telegram(text):
     try:
         r = curl_requests.post(
             url,
-            json={
-                "chat_id": CHAT_ID,
-                "text": text,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True,
-            },
+            json={"chat_id": CHAT_ID, "text": text,
+                  "parse_mode": "HTML", "disable_web_page_preview": True},
             timeout=15,
         )
         if r.status_code != 200:
@@ -55,40 +50,37 @@ def fetch_page(url):
 
 
 def normalize(text):
-    """Dinamik içeriği (tarih, sayı, saat) temizle, küçük harfe çevir."""
-    t = text.lower()
-    t = re.sub(r"\d{1,2}[./]\d{1,2}[./]\d{2,4}", " ", t)  # 12.05.2026
-    t = re.sub(r"\d{1,2}:\d{2}", " ", t)                   # 14:30
-    t = re.sub(r"\b\d+\b", " ", t)                         # sayılar
-    t = re.sub(r"\s+", " ", t).strip()
+    t = text.lower().strip()
+    t = re.sub(r"\s+", " ", t)
     return t
 
 
-def extract_items(html):
-    """Sayfadan kampanya başlıklarını ve anlamlı link metinlerini çıkar."""
-    # script ve style'ları at
+def extract_items(html, selector, mode, base_url):
     html = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r"<style[^>]*>.*?</style>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+    soup = BeautifulSoup(html, "html.parser")
+    items = {}
 
-    items = set()
+    if not selector:
+        return items
 
-    # Başlıklar (h1-h4)
-    for m in re.finditer(r"<h[1-4][^>]*>(.*?)</h[1-4]>", html, re.DOTALL | re.IGNORECASE):
-        text = re.sub(r"<[^>]+>", " ", m.group(1))
-        text = re.sub(r"\s+", " ", text).strip()
-        if len(text) > 5:
-            n = normalize(text)
-            if len(n) > 3:
-                items.add(n)
-
-    # Link metinleri
-    for m in re.finditer(r"<a[^>]*>(.*?)</a>", html, re.DOTALL | re.IGNORECASE):
-        text = re.sub(r"<[^>]+>", " ", m.group(1))
-        text = re.sub(r"\s+", " ", text).strip()
-        if 5 < len(text) < 200:
-            n = normalize(text)
-            if len(n) > 3:
-                items.add(n)
+    for node in soup.select(selector):
+        if mode == "links":
+            a = node if node.name == "a" else node.find("a", href=True)
+            if not a or not a.get("href"):
+                continue
+            href = urljoin(base_url, a["href"])
+            # UTM parametrelerini temizle (aynı kampanya farklı URL üretmesin)
+            href = re.sub(r"[?&]utm_[^&]+", "", href).rstrip("?&")
+            # Link metnini de etiket olarak kullan
+            label = html_lib.unescape(a.get_text(" ", strip=True))
+            label = re.sub(r"\s+", " ", label).strip()
+            items[href] = label or href
+        else:  # text
+            text = html_lib.unescape(node.get_text(" ", strip=True))
+            text = re.sub(r"\s+", " ", text).strip()
+            if 5 < len(text) < 200:
+                items[normalize(text)] = text
 
     return items
 
@@ -102,6 +94,8 @@ def main():
     for target in watch["targets"]:
         name = target["name"]
         url = target["url"]
+        selector = target.get("selector")
+        mode = target.get("mode", "text")
 
         try:
             html = fetch_page(url)
@@ -110,41 +104,45 @@ def main():
             continue
 
         try:
-            items = extract_items(html)
+            items = extract_items(html, selector, mode, url)
         except Exception as e:
             print(f"[{name}] extract error: {e}")
             continue
 
         if not items:
-            print(f"[{name}] sayfadan hiç öğe çıkarılamadı (yapı değişmiş olabilir).")
+            print(f"[{name}] hiç öğe çıkarılamadı.")
             continue
 
         prev = set(state.get(name, []))
+        current = set(items.keys())
+        new_keys = current - prev
+        removed = prev - current
 
         if not prev:
-            print(f"[{name}] ilk kayıt: {len(items)} öğe kaydedildi.")
-            state[name] = sorted(items)
+            print(f"[{name}] ilk kayıt: {len(current)} öğe.")
+            state[name] = sorted(current)
             continue
 
-        new_items = items - prev
-        removed = prev - items
+        if new_keys:
+            print(f"[{name}] {len(new_keys)} YENİ:")
+            for k in sorted(new_keys):
+                print(f"  + {k}")
+                print(f"    {items[k][:80]}")
 
-        if new_items:
-            print(f"[{name}] {len(new_items)} YENİ öğe:")
-            for item in sorted(new_items)[:5]:
-                print(f"  + {item[:80]}")
-
-            preview = "\n".join(f"• {item[:100]}" for item in sorted(new_items)[:3])
+            lines = []
+            for k in sorted(new_keys)[:5]:
+                label = items[k][:100] or k
+                lines.append(f"• <a href=\"{k}\">{html_lib.escape(label)}</a>")
             send_telegram(
-                f"🔔 <b>[{name}]</b> sayfasında {len(new_items)} yeni kampanya/başlık var:\n"
-                f"{preview}\n\n{url}"
+                f"🔔 <b>[{name}]</b> sayfasında {len(new_keys)} yeni kampanya:\n"
+                + "\n".join(lines)
             )
         elif removed:
             print(f"[{name}] {len(removed)} öğe kalktı (bildirim yok).")
         else:
-            print(f"[{name}] değişiklik yok ({len(items)} öğe).")
+            print(f"[{name}] değişiklik yok ({len(current)} öğe).")
 
-        state[name] = sorted(items)
+        state[name] = sorted(current)
 
     save_state(state)
 
