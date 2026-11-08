@@ -1,0 +1,19 @@
+{
+  "targets": [
+    {
+      "name": "THY Kampanyalar",
+      "url": "https://www.turkishairlines.com/tr-tr/kampanyalar/",
+      "selector": null
+    },
+    {
+      "name": "Pegasus Aktif Kampanyalar",
+      "url": "https://www.flypgs.com/kampanyali-ucak-biletleri/aktif-kampanyalar",
+      "selector": null
+    },
+    {
+      "name": "SunExpress SunSave",
+      "url": "https://www.sunexpress.com/tr-tr/book/rezervasyon/sunsave-kampanyasi/",
+      "selector": null
+    }
+  ]
+}
