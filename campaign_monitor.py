@@ -14,10 +14,18 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 
 def load_state():
-    if os.path.exists(STATE_FILE):
+    if not os.path.exists(STATE_FILE):
+        return {}
+    try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+            content = f.read().strip()
+        if not content:
+            return {}
+        data = json.loads(content)
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"State dosyası okunamadı, sıfırlanıyor: {e}")
+        return {}
 
 
 def save_state(state):
