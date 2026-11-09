@@ -5,10 +5,7 @@ import html
 import re
 import feedparser
 import requests
-import time
-from datetime import datetime, timedelta, timezone
 from bs4 import BeautifulSoup
-from swoop import search as swoop_search
 
 # --- Kaynaklar ---
 FEEDS = {
@@ -30,7 +27,6 @@ SOURCE_LABELS = {
 }
 
 SEEN_FILE = "seen.json"
-GF_STATE_FILE = "gf_state.json"
 UCUZAUC_STATE_FILE = "ucuzauc_state.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
@@ -59,23 +55,6 @@ HEADERS = {
     "Cache-Control": "no-cache",
 }
 REQUEST_TIMEOUT = 20
-
-USD_TO_TL = 50.0
-
-GOOGLE_FLIGHTS_WATCH = [
-    {"name": "IST → Bangkok (esnek)", "origin": "IST", "destination": "BKK",
-     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 29000},
-    {"name": "IST → Kuala Lumpur (esnek)", "origin": "IST", "destination": "KUL",
-     "departure_offset_days": 60, "stay_days": 14, "max_price_tl": 28000},
-    {"name": "IST → Singapore (esnek)", "origin": "IST", "destination": "SIN",
-     "departure_offset_days": 60, "stay_days": 10, "max_price_tl": 33000},
-    {"name": "IST → Seoul (esnek)", "origin": "IST", "destination": "ICN",
-     "departure_offset_days": 90, "stay_days": 10, "max_price_tl": 35000},
-    {"name": "IST → Hong Kong (esnek)", "origin": "IST", "destination": "HKG",
-     "departure_offset_days": 60, "stay_days": 10, "max_price_tl": 32000},
-    {"name": "IST → Manila (esnek)", "origin": "IST", "destination": "MNL",
-     "departure_offset_days": 60, "stay_days": 14, "max_price_tl": 39000},
-]
 
 UCUZAUC_URL = "https://www.ucuzauc.org/kalkis/istanbul"
 
@@ -111,14 +90,6 @@ def load_seen():
 
 def save_seen(seen):
     _save_json_state(SEEN_FILE, {s: sorted(list(ids)) for s, ids in seen.items()})
-
-
-def load_gf_state():
-    return _load_json_state(GF_STATE_FILE)
-
-
-def save_gf_state(state):
-    _save_json_state(GF_STATE_FILE, state)
 
 
 def load_ucuzauc_state():
@@ -184,132 +155,6 @@ def fetch_feed(url):
 
 
 # ============================================================
-# GOOGLE FLIGHTS KATMANI
-# ============================================================
-def resolve_dates(route):
-    today = datetime.now(timezone.utc).date()
-    min_date = today + timedelta(days=3)
-
-    if "departure_offset_days" in route:
-        depart = today + timedelta(days=route["departure_offset_days"])
-    else:
-        depart = datetime.strptime(route["departure"], "%Y-%m-%d").date()
-        if depart < min_date:
-            shift = (min_date - depart).days + 90
-            depart = depart + timedelta(days=shift)
-            print(f"  ⚠️ {route['name']}: tarih geçmiş, +{shift} gün kaydırıldı → {depart}")
-
-    if "stay_days" in route:
-        ret = depart + timedelta(days=route["stay_days"])
-    else:
-        ret = datetime.strptime(route["return_date"], "%Y-%m-%d").date()
-        if ret < depart + timedelta(days=1):
-            ret = depart + timedelta(days=7)
-            print(f"  ⚠️ {route['name']}: dönüş tarihi geçersiz, +7 gün → {ret}")
-
-    return depart, ret
-
-
-def check_google_flights_watch():
-    gf_state = load_gf_state()
-    first_run = not os.path.exists(GF_STATE_FILE)
-    today = datetime.now(timezone.utc).date()
-
-    print("\n--- Google Flights ---")
-    alerts = 0
-    failed_routes = 0
-
-    for route_idx, route in enumerate(GOOGLE_FLIGHTS_WATCH):
-        name = route["name"]
-        depart, ret_date = resolve_dates(route)
-        state_key = f"{name}|{depart}|{ret_date}"
-
-        # İstekler arası 2 saniye bekle (rate limit'e karşı)
-        if route_idx > 0:
-            time.sleep(2)
-
-        try:
-            # Retry mekanizması: gRPC 13 hatası için 1 kez daha dene
-            out = ret = None
-            for attempt in range(2):
-                try:
-                    out = swoop_search(route["origin"], route["destination"], str(depart))
-                    ret = swoop_search(route["destination"], route["origin"], str(ret_date))
-                    break
-                except Exception as e:
-                    err_str = str(e)
-                    if attempt == 0 and ("gRPC status 13" in err_str or "INTERNAL" in err_str):
-                        print(f"  [{name}] geçici hata, 3sn sonra tekrar deneniyor...")
-                        time.sleep(3)
-                        continue
-                    raise
-
-            if not out or not ret or not out.results or not ret.results:
-                print(f"  [{name}] {depart}→{ret_date}: sonuç yok")
-                continue
-
-            out_min = min(opt.price for opt in out.results if opt.price)
-            ret_min = min(opt.price for opt in ret.results if opt.price)
-            total_usd = out_min + ret_min
-            total_tl = total_usd * USD_TO_TL
-
-            prev = gf_state.get(state_key, {})
-            prev_tl = prev.get("last_tl")
-            was_below = prev.get("below_threshold", False)
-            below = total_tl <= route["max_price_tl"]
-
-            trend = ""
-            if prev_tl and prev_tl > total_tl:
-                pct = (prev_tl - total_tl) / prev_tl * 100
-                if pct >= 3:
-                    trend = f" (↓ %{pct:.0f})"
-
-            print(f"  [{name}] {depart}→{ret_date} | "
-                  f"{total_usd} USD = {total_tl:,.0f} TL | "
-                  f"eşik {route['max_price_tl']:,} | altında: {below}{trend}")
-
-            if first_run:
-                pass
-            elif below and not was_below:
-                send_telegram(
-                    f"✈️ <b>[Google Flights] {name}</b>\n"
-                    f"📅 {depart} → {ret_date}\n"
-                    f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}\n"
-                    f"⚠️ <i>USD bazlı tahmin, fiyat +1-3K farklı olabilir</i>"
-                )
-                alerts += 1
-            elif below and was_below and trend:
-                send_telegram(
-                    f"📉 <b>[Google Flights] {name}</b> daha da düştü\n"
-                    f"📅 {depart} → {ret_date}\n"
-                    f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}"
-                )
-                alerts += 1
-
-            gf_state[state_key] = {
-                "last_tl": total_tl,
-                "below_threshold": below,
-            }
-        except Exception as e:
-            failed_routes += 1
-            print(f"  [{name}] hata (atlandı): {type(e).__name__}: {str(e)[:100]}")
-
-    today_str = str(today)
-    removed = 0
-    for k in list(gf_state.keys()):
-        parts = k.split("|")
-        if len(parts) == 3 and parts[1] < today_str:
-            del gf_state[k]
-            removed += 1
-    if removed:
-        print(f"  🗑️ {removed} eski state temizlendi")
-
-    save_gf_state(gf_state)
-    print(f"  Google Flights: {alerts} alert, {failed_routes} başarısız rota")
-    return alerts
-
-
-# ============================================================
 # UCUZA UÇ KATMANI
 # ============================================================
 def filter_tags(tags):
@@ -329,8 +174,8 @@ def filter_tags(tags):
     return filtered
 
 
-def parse_ucuzauc_main(html):
-    soup = BeautifulSoup(html, "html.parser")
+def parse_ucuzauc_main(html_text):
+    soup = BeautifulSoup(html_text, "html.parser")
     routes, warnings = {}, []
 
     for row in soup.find_all("tr"):
@@ -374,8 +219,8 @@ def parse_ucuzauc_main(html):
     return routes, warnings
 
 
-def parse_ucuzauc_detail(html):
-    soup = BeautifulSoup(html, "html.parser")
+def parse_ucuzauc_detail(html_text):
+    soup = BeautifulSoup(html_text, "html.parser")
     text = soup.get_text(" ", strip=True)
 
     current_match = re.search(r"(\d{1,3}\.\d{3})\s*₺", text)
@@ -579,7 +424,6 @@ def main():
             source_seen.add(item_id)
             new_items.append((source, title, link))
 
-    check_google_flights_watch()
     check_ucuzauc_all()
 
     if first_run:
@@ -622,4 +466,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
