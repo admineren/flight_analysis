@@ -38,7 +38,7 @@ SEEN_FILE = "seen.json"
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-KEYWORDS_SUBSTR = ["istanbul", "sabiha", "saw", "türkiye", "turkey", "stambuł"]
+KEYWORDS_SUBSTR = ["istanbul", "sabiha", "türkiye", "turkey", "stambuł"]
 KEYWORDS_REGEX = [r"\bIST\b", r"\bSAW\b"]
 
 MAX_NOTIFY = 5
@@ -99,9 +99,16 @@ def send_telegram(text):
 
 
 def matches_istanbul(haystack):
-    if any(k in haystack for k in KEYWORDS_SUBSTR):
+    # Alt dize kontrolü (İstanbul, Sabiha vb.)
+    if any(k in haystack.lower() for k in KEYWORDS_SUBSTR):
         return True
-    return any(re.search(pat, haystack, re.IGNORECASE) for pat in KEYWORDS_REGEX)
+    # IST: case-insensitive, kelime sınırıyla
+    if re.search(r"\bIST\b", haystack, re.IGNORECASE):
+        return True
+    # SAW: case-sensitive (sadece büyük harf), "Warsaw" gibi kelimelerle eşleşmesin
+    if re.search(r"\bSAW\b", haystack):
+        return True
+    return False
 
 
 def fetch_feed(url):
