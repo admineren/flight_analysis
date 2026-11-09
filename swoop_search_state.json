@@ -1,6 +1,14 @@
 {
+  "IST → Baku|2027-01-08|2027-01-13": {
+    "below_threshold": false,
+    "last_tl": 23650.0
+  },
   "IST → Dubai|2027-01-08|2027-01-13": {
     "below_threshold": false,
     "last_tl": 29750.0
+  },
+  "IST → Tbilisi|2027-01-08|2027-01-13": {
+    "below_threshold": false,
+    "last_tl": 14950.0
   }
 }
