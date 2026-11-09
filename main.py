@@ -5,7 +5,8 @@ import html
 import re
 import feedparser
 import requests
-from swoop import search as swoop_search  # Google Flights
+from datetime import datetime, timedelta, timezone
+from swoop import search as swoop_search
 
 # --- Kaynaklar ---
 FEEDS = {
@@ -15,10 +16,6 @@ FEEDS = {
     "holidaypirates": "https://www.holidaypirates.com/feed",
     "thriftytraveler": "https://thriftytraveler.com/feed/",
     "reddit_awardtravel": "https://www.reddit.com/r/awardtravel/.rss",
-    # Cloudflare engeli nedeniyle devre dışı:
-    # "secretflying": "https://www.secretflying.com/feed/",
-    # "flyertalk_mileagerun": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=372",
-    # "flyertalk_premium": "https://www.flyertalk.com/forum/external.php?type=RSS2&forumids=740",
 }
 
 SOURCE_LABELS = {
@@ -28,19 +25,15 @@ SOURCE_LABELS = {
     "holidaypirates": "Holiday Pirates",
     "thriftytraveler": "Thrifty Traveler",
     "reddit_awardtravel": "Reddit r/awardtravel",
-    "secretflying": "Secret Flying",
-    "flyertalk_mileagerun": "FlyerTalk Mileage Run",
-    "flyertalk_premium": "FlyerTalk Premium Fares",
 }
 
 SEEN_FILE = "seen.json"
+GF_STATE_FILE = "gf_state.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 KEYWORDS_SUBSTR = ["istanbul", "sabiha", "türkiye", "turkey", "stambuł"]
-KEYWORDS_REGEX = [r"\bIST\b", r"\bSAW\b"]
-
 MAX_NOTIFY = 5
 
 HEADERS = {
@@ -55,10 +48,49 @@ HEADERS = {
 }
 REQUEST_TIMEOUT = 20
 
-# Google Flights demo: bu rotaları test amaçlı sorgular
-GOOGLE_FLIGHTS_DEMO_ROUTES = [
-    ("IST", "LHR", "2026-12-15"),
-    ("IST", "CDG", "2026-12-20"),
+# --- Google Flights Watchlist ---
+# İki mod destekleniyor:
+#   1) departure_offset_days + stay_days → tarihler her çalıştırmada bugüne göre hesaplanır
+#   2) departure + return_date → sabit tarih; geçmişse +90 gün kaydırılır
+USD_TO_TL = 50.0
+
+GOOGLE_FLIGHTS_WATCH = [
+    {
+        "name": "IST → Bangkok (esnek)",
+        "origin": "IST", "destination": "BKK",
+        "departure_offset_days": 90, "stay_days": 7,
+        "max_price_tl": 29500,
+    },
+    {
+        "name": "IST → Kuala Lumpur (esnek)",
+        "origin": "IST", "destination": "KUL",
+        "departure_offset_days": 60, "stay_days": 14,
+        "max_price_tl": 25800,
+    },
+    {
+        "name": "IST → Singapore (esnek)",
+        "origin": "IST", "destination": "SIN",
+        "departure_offset_days": 60, "stay_days": 10,
+        "max_price_tl": 30500,
+    },
+    {
+        "name": "IST → Seoul (esnek)",
+        "origin": "IST", "destination": "ICN",
+        "departure_offset_days": 90, "stay_days": 10,
+        "max_price_tl": 29800,
+    },
+    {
+        "name": "IST → Hong Kong (esnek)",
+        "origin": "IST", "destination": "HKG",
+        "departure_offset_days": 60, "stay_days": 10,
+        "max_price_tl": 34000,
+    },
+    {
+        "name": "IST → Manila (esnek)",
+        "origin": "IST", "destination": "MNL",
+        "departure_offset_days": 60, "stay_days": 14,
+        "max_price_tl": 33500,
+    },
 ]
 
 
@@ -83,6 +115,26 @@ def save_seen(seen):
         json.dump(serializable, f, ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def load_gf_state():
+    if not os.path.exists(GF_STATE_FILE):
+        return {}
+    try:
+        with open(GF_STATE_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+        if not content:
+            return {}
+        return json.loads(content)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_gf_state(state):
+    tmp = GF_STATE_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    os.replace(tmp, GF_STATE_FILE)
+
+
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
@@ -99,13 +151,10 @@ def send_telegram(text):
 
 
 def matches_istanbul(haystack):
-    # Alt dize kontrolü (İstanbul, Sabiha vb.)
     if any(k in haystack.lower() for k in KEYWORDS_SUBSTR):
         return True
-    # IST: case-insensitive, kelime sınırıyla
     if re.search(r"\bIST\b", haystack, re.IGNORECASE):
         return True
-    # SAW: case-sensitive (sadece büyük harf), "Warsaw" gibi kelimelerle eşleşmesin
     if re.search(r"\bSAW\b", haystack):
         return True
     return False
@@ -134,37 +183,112 @@ def fetch_feed(url):
             return None, "bağlantı hatası"
 
 
-def check_google_flights(origin, destination, date_str):
-    """swoop-flights (0.4.x+) ile Google Flights fiyatlarını çeker."""
-    try:
-        results = swoop_search(origin, destination, date_str)
-        
-        # Yeni API: results.results (TripOption listesi)
-        if not results.results:
-            print(f"  [GF] {origin}->{destination} {date_str}: sonuç yok")
-            return None
+def resolve_dates(route):
+    """Route'daki tarihleri bugüne göre çöz. Geçmiş tarihleri otomatik kaydır."""
+    today = datetime.now(timezone.utc).date()
+    min_date = today + timedelta(days=3)
 
-        prices = [opt.price for opt in results.results if opt.price]
-        if not prices:
-            print(f"  [GF] {origin}->{destination} {date_str}: fiyat yok")
-            return None
+    if "departure_offset_days" in route:
+        depart = today + timedelta(days=route["departure_offset_days"])
+    else:
+        depart = datetime.strptime(route["departure"], "%Y-%m-%d").date()
+        if depart < min_date:
+            shift = (min_date - depart).days + 90
+            depart = depart + timedelta(days=shift)
+            print(f"  ⚠️ {route['name']}: tarih geçmiş, +{shift} gün kaydırıldı → {depart}")
 
-        min_price = min(prices)
-        avg_price = sum(prices) / len(prices)
+    if "stay_days" in route:
+        ret = depart + timedelta(days=route["stay_days"])
+    else:
+        ret = datetime.strptime(route["return_date"], "%Y-%m-%d").date()
+        if ret < depart + timedelta(days=1):
+            ret = depart + timedelta(days=7)
+            print(f"  ⚠️ {route['name']}: dönüş tarihi geçersiz, +7 gün → {ret}")
 
-        airlines = set()
-        for opt in results.results[:5]:
-            for leg in opt.legs:
-                if leg.itinerary and leg.itinerary.airline_names:
-                    airlines.add(tuple(leg.itinerary.airline_names))
+    return depart, ret
 
-        print(f"  [GF] {origin}->{destination} {date_str}: "
-              f"min=${min_price}, avg=${avg_price:.0f}, "
-              f"options={len(prices)}, airlines={airlines}")
-        return min_price, avg_price, airlines
-    except Exception as e:
-        print(f"  [GF] {origin}->{destination} {date_str} hata: {e}")
-        return None
+
+def check_google_flights_watch():
+    """Google Flights rotalarını tara, eşik altındakileri Telegram'a gönder."""
+    gf_state = load_gf_state()
+    first_run = not os.path.exists(GF_STATE_FILE)
+    today = datetime.now(timezone.utc).date()
+
+    print("\n--- Google Flights ---")
+    alerts = 0
+
+    for route in GOOGLE_FLIGHTS_WATCH:
+        name = route["name"]
+        depart, ret_date = resolve_dates(route)
+        state_key = f"{name}|{depart}|{ret_date}"
+
+        try:
+            out = swoop_search(route["origin"], route["destination"], str(depart))
+            ret = swoop_search(route["destination"], route["origin"], str(ret_date))
+
+            if not out.results or not ret.results:
+                print(f"  [{name}] {depart}→{ret_date}: sonuç yok")
+                continue
+
+            out_min = min(opt.price for opt in out.results if opt.price)
+            ret_min = min(opt.price for opt in ret.results if opt.price)
+            total_usd = out_min + ret_min
+            total_tl = total_usd * USD_TO_TL
+
+            prev = gf_state.get(state_key, {})
+            prev_tl = prev.get("last_tl")
+            was_below = prev.get("below_threshold", False)
+            below = total_tl <= route["max_price_tl"]
+
+            trend = ""
+            if prev_tl and prev_tl > total_tl:
+                pct = (prev_tl - total_tl) / prev_tl * 100
+                if pct >= 3:
+                    trend = f" (↓ %{pct:.0f})"
+
+            print(f"  [{name}] {depart}→{ret_date} | "
+                  f"{total_usd} USD = {total_tl:,.0f} TL | "
+                  f"eşik {route['max_price_tl']:,} | altında: {below}{trend}")
+
+            if first_run:
+                pass
+            elif below and not was_below:
+                send_telegram(
+                    f"✈️ <b>[Google Flights] {name}</b>\n"
+                    f"📅 {depart} → {ret_date}\n"
+                    f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}\n"
+                    f"⚠️ <i>USD bazlı tahmin, fiyat +1-3K farklı olabilir</i>"
+                )
+                alerts += 1
+            elif below and was_below and trend:
+                send_telegram(
+                    f"📉 <b>[Google Flights] {name}</b> daha da düştü\n"
+                    f"📅 {depart} → {ret_date}\n"
+                    f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}"
+                )
+                alerts += 1
+
+            gf_state[state_key] = {
+                "last_tl": total_tl,
+                "below_threshold": below,
+            }
+        except Exception as e:
+            print(f"  [{name}] hata: {type(e).__name__}: {e}")
+
+    # Eski state key'lerini temizle (geçmiş tarihli)
+    today_str = str(today)
+    removed = 0
+    for k in list(gf_state.keys()):
+        parts = k.split("|")
+        if len(parts) == 3 and parts[1] < today_str:
+            del gf_state[k]
+            removed += 1
+    if removed:
+        print(f"  🗑️ {removed} eski state temizlendi")
+
+    save_gf_state(gf_state)
+    print(f"  Google Flights: {alerts} yeni alert")
+    return alerts
 
 
 def main():
@@ -216,12 +340,10 @@ def main():
             source_seen.add(item_id)
             new_items.append((source, title, link))
 
-    # --- Google Flights test (sadece loglara yazar, Telegram'a göndermez) ---
-    print("\n--- Google Flights demo ---")
-    for origin, destination, date_str in GOOGLE_FLIGHTS_DEMO_ROUTES:
-        check_google_flights(origin, destination, date_str)
+    # --- Google Flights watch ---
+    check_google_flights_watch()
 
-    # --- Bildirimler ---
+    # --- RSS Bildirimler ---
     if first_run:
         if new_items:
             by_source = {}
