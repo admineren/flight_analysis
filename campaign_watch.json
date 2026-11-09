@@ -5,6 +5,37 @@
       "url": "https://www.turkishairlines.com/tr-tr/kampanyalar/",
       "selector": "div.promotions a[href]",
       "mode": "links"
+    },
+    {
+      "name": "Haber.aero Fırsatlar",
+      "url": "https://haber.aero/kategori/firsatlar/",
+      "selector": "h2.jeg_post_title a, h3.jeg_post_title a",
+      "mode": "links",
+      "alert_on_empty": true,
+      "include_keywords": [
+        "indirim", "kampanya", "fırsat", "bilet", "uçuş",
+        "promosyon", "satış", "tl'den", "dolardan", "eurodan",
+        "tl'lik", "dolarlık", "euro'luk"
+      ],
+      "exclude_keywords": [
+        "alım", "alacak", "personel", "kabin memuru", "mühendis",
+        "başvuru", "işe alım", "kariyer", "istihdam", "kadro",
+        "hostes", "teknisyen", "pilot alımı", "arıyor",
+        "milyon", "milyar", "zarar", "açıkladı", "duyurdu",
+        "bomba", "kaza", "devirdi", "ihbar",
+        "vize", "otoyol", "altyapı", "emanet", "anlaşma"
+      ],
+      "exclude_regex": [
+        "\\bk[âa]r[ıi]?\\b",
+        "\\bgelir[ıiuü]?\\b",
+        "\\bindi\\b",
+        "\\bçıktı\\b",
+        "\\baştı\\b",
+        "\\bpass\\b",
+        "\\blounge\\b",
+        "\\botel\\b",
+        "\\bhotel\\b"
+      ]
     }
   ]
 }
