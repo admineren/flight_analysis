@@ -86,7 +86,27 @@ def make_label(url, label):
     return label
 
 
-def extract_items(html, selector, mode, base_url):
+def passes_filters(label, include_keywords, exclude_keywords, exclude_regex):
+    """Bir etiketin filtreden geçip geçmediğini kontrol et."""
+    lc = label.lower()
+
+    # 1. Pozitif filtre: en az biri geçmeli (varsa)
+    if include_keywords and not any(k in lc for k in include_keywords):
+        return False
+
+    # 2. Negatif kelime filtresi
+    if exclude_keywords and any(k in lc for k in exclude_keywords):
+        return False
+
+    # 3. Negatif regex filtresi
+    if exclude_regex and any(re.search(p, lc) for p in exclude_regex):
+        return False
+
+    return True
+
+
+def extract_items(html, selector, mode, base_url,
+                  include_keywords=None, exclude_keywords=None, exclude_regex=None):
     html = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r"<style[^>]*>.*?</style>", " ", html, flags=re.DOTALL | re.IGNORECASE)
     soup = BeautifulSoup(html, "html.parser")
@@ -106,7 +126,13 @@ def extract_items(html, selector, mode, base_url):
             # Link metnini etiket olarak kullan; jenerikse slug'dan türet
             raw_label = html_lib.unescape(a.get_text(" ", strip=True))
             raw_label = re.sub(r"\s+", " ", raw_label).strip()
-            items[href] = make_label(href, raw_label) or href
+            label = make_label(href, raw_label) or href
+
+            # --- FİLTRE ---
+            if not passes_filters(label, include_keywords, exclude_keywords, exclude_regex):
+                continue
+
+            items[href] = label
         else:  # text
             text = html_lib.unescape(node.get_text(" ", strip=True))
             text = re.sub(r"\s+", " ", text).strip()
@@ -127,6 +153,10 @@ def main():
         url = target["url"]
         selector = target.get("selector")
         mode = target.get("mode", "text")
+        include_keywords = target.get("include_keywords")
+        exclude_keywords = target.get("exclude_keywords")
+        exclude_regex = target.get("exclude_regex")
+        alert_on_empty = target.get("alert_on_empty", False)
 
         try:
             html = fetch_page(url)
@@ -135,13 +165,25 @@ def main():
             continue
 
         try:
-            items = extract_items(html, selector, mode, url)
+            items = extract_items(
+                html, selector, mode, url,
+                include_keywords=include_keywords,
+                exclude_keywords=exclude_keywords,
+                exclude_regex=exclude_regex,
+            )
         except Exception as e:
             print(f"[{name}] extract error: {e}")
             continue
 
+        # --- BOŞ PARSE UYARISI (parse hatası tespiti) ---
         if not items:
             print(f"[{name}] hiç öğe çıkarılamadı.")
+            if alert_on_empty:
+                send_telegram(
+                    f"⚠️ <b>[{name}]</b> 0 öğe parse edildi.\n"
+                    f"Sayfa yapısı değişmiş olabilir, selector güncellenmeli.\n"
+                    f"🔗 {url}"
+                )
             continue
 
         prev = set(state.get(name, []))
