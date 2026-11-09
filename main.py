@@ -6,6 +6,7 @@ import re
 import feedparser
 import requests
 from datetime import datetime, timedelta, timezone
+from bs4 import BeautifulSoup
 from swoop import search as swoop_search
 
 # --- Kaynaklar ---
@@ -29,22 +30,22 @@ SOURCE_LABELS = {
 
 SEEN_FILE = "seen.json"
 GF_STATE_FILE = "gf_state.json"
+UCUZAUC_STATE_FILE = "ucuzauc_state.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 KEYWORDS_SUBSTR = ["istanbul", "sabiha", "stambuł"]
-MAX_NOTIFY = 5
-
 HOTEL_PACKAGE_WORDS = [
     "hotel", "otel", "resort", "all-inclusive", "all inclusive",
     "package", "paket", "villa", "apartment", "cruise",
     "holiday break", "tatil", "konaklama", "accommodation",
 ]
 FLIGHT_WORDS = [
-    "flight", "fly", "airline", "airfare", "airline ticket",
+    "flight", "fly", "airline", "airfare",
     "uçuş", "bilet", "ticket", "one-way", "roundtrip", "round-trip",
 ]
+MAX_NOTIFY = 5
 
 HEADERS = {
     "User-Agent": (
@@ -58,118 +59,97 @@ HEADERS = {
 }
 REQUEST_TIMEOUT = 20
 
-# --- Google Flights Watchlist ---
-# İki mod destekleniyor:
-#   1) departure_offset_days + stay_days → tarihler her çalıştırmada bugüne göre hesaplanır
-#   2) departure + return_date → sabit tarih; geçmişse +90 gün kaydırılır
 USD_TO_TL = 50.0
 
 GOOGLE_FLIGHTS_WATCH = [
-    {
-        "name": "IST → Bangkok (esnek)",
-        "origin": "IST", "destination": "BKK",
-        "departure_offset_days": 90, "stay_days": 7,
-        "max_price_tl": 29000,   # 33.850 → 29.000 (~%14 düşüş)
-    },
-    {
-        "name": "IST → Kuala Lumpur (esnek)",
-        "origin": "IST", "destination": "KUL",
-        "departure_offset_days": 60, "stay_days": 14,
-        "max_price_tl": 28000,   # 32.450 → 28.000 (~%14 düşüş)
-    },
-    {
-        "name": "IST → Singapore (esnek)",
-        "origin": "IST", "destination": "SIN",
-        "departure_offset_days": 60, "stay_days": 10,
-        "max_price_tl": 33000,   # 38.500 → 33.000 (~%14 düşüş)
-    },
-    {
-        "name": "IST → Seoul (esnek)",
-        "origin": "IST", "destination": "ICN",
-        "departure_offset_days": 90, "stay_days": 10,
-        "max_price_tl": 35000,   # 40.700 → 35.000 (~%14 düşüş)
-    },
-    {
-        "name": "IST → Hong Kong (esnek)",
-        "origin": "IST", "destination": "HKG",
-        "departure_offset_days": 60, "stay_days": 10,
-        "max_price_tl": 32000,   # 37.100 → 32.000 (~%14 düşüş)
-    },
-    {
-        "name": "IST → Manila (esnek)",
-        "origin": "IST", "destination": "MNL",
-        "departure_offset_days": 60, "stay_days": 14,
-        "max_price_tl": 39000,   # 45.300 → 39.000 (~%14 düşüş)
-    },
+    {"name": "IST → Bangkok (esnek)", "origin": "IST", "destination": "BKK",
+     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 29000},
+    {"name": "IST → Kuala Lumpur (esnek)", "origin": "IST", "destination": "KUL",
+     "departure_offset_days": 60, "stay_days": 14, "max_price_tl": 28000},
+    {"name": "IST → Singapore (esnek)", "origin": "IST", "destination": "SIN",
+     "departure_offset_days": 60, "stay_days": 10, "max_price_tl": 33000},
+    {"name": "IST → Seoul (esnek)", "origin": "IST", "destination": "ICN",
+     "departure_offset_days": 90, "stay_days": 10, "max_price_tl": 35000},
+    {"name": "IST → Hong Kong (esnek)", "origin": "IST", "destination": "HKG",
+     "departure_offset_days": 60, "stay_days": 10, "max_price_tl": 32000},
+    {"name": "IST → Manila (esnek)", "origin": "IST", "destination": "MNL",
+     "departure_offset_days": 60, "stay_days": 14, "max_price_tl": 39000},
 ]
+
+UCUZAUC_URL = "https://www.ucuzauc.org/kalkis/istanbul"
+
+
+# ============================================================
+# STATE YÖNETİMİ
+# ============================================================
+def _load_json_state(path, default=None):
+    if not os.path.exists(path):
+        return default if default is not None else {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+        if not content:
+            return default if default is not None else {}
+        data = json.loads(content)
+        return data if isinstance(data, dict) else (default if default is not None else {})
+    except (json.JSONDecodeError, OSError):
+        return default if default is not None else {}
+
+
+def _save_json_state(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=True)
+    os.replace(tmp, path)
 
 
 def load_seen():
-    if not os.path.exists(SEEN_FILE):
-        return {}
-    try:
-        with open(SEEN_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-    if isinstance(data, list):
-        return {"secretflying": set(data)}
-    if isinstance(data, dict):
-        return {s: set(ids) for s, ids in data.items() if isinstance(ids, list)}
-    return {}
+    data = _load_json_state(SEEN_FILE)
+    return {s: set(ids) for s, ids in data.items() if isinstance(ids, list)}
 
 
 def save_seen(seen):
-    serializable = {src: sorted(list(ids)) for src, ids in seen.items()}
-    with open(SEEN_FILE, "w", encoding="utf-8") as f:
-        json.dump(serializable, f, ensure_ascii=False, indent=2, sort_keys=True)
+    _save_json_state(SEEN_FILE, {s: sorted(list(ids)) for s, ids in seen.items()})
 
 
 def load_gf_state():
-    if not os.path.exists(GF_STATE_FILE):
-        return {}
-    try:
-        with open(GF_STATE_FILE, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-        if not content:
-            return {}
-        return json.loads(content)
-    except (json.JSONDecodeError, OSError):
-        return {}
+    return _load_json_state(GF_STATE_FILE)
 
 
 def save_gf_state(state):
-    tmp = GF_STATE_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
-    os.replace(tmp, GF_STATE_FILE)
+    _save_json_state(GF_STATE_FILE, state)
+
+
+def load_ucuzauc_state():
+    return _load_json_state(UCUZAUC_STATE_FILE)
+
+
+def save_ucuzauc_state(state):
+    _save_json_state(UCUZAUC_STATE_FILE, state)
 
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
-        r = requests.post(
-            url,
-            json={"chat_id": CHAT_ID, "text": text,
-                  "parse_mode": "HTML", "disable_web_page_preview": True},
-            timeout=15,
-        )
+        r = requests.post(url, json={
+            "chat_id": CHAT_ID, "text": text,
+            "parse_mode": "HTML", "disable_web_page_preview": True,
+        }, timeout=15)
         if r.status_code != 200:
             print("Telegram error:", r.status_code, r.text)
     except Exception as e:
         print("Telegram exception:", e)
 
 
+# ============================================================
+# RSS KATMANI
+# ============================================================
 def matches_istanbul(haystack):
     text = haystack.lower()
-
-    # Önce: otel/paket filtresi (uçuş kelimesi yoksa atla)
     has_hotel = any(w in text for w in HOTEL_PACKAGE_WORDS)
     has_flight = any(w in text for w in FLIGHT_WORDS)
     if has_hotel and not has_flight:
         return False
-
-    # Sonra: İstanbul kalkış kontrolü
     if any(k in text for k in KEYWORDS_SUBSTR):
         return True
     if re.search(r"\bIST\b", haystack, re.IGNORECASE):
@@ -202,8 +182,10 @@ def fetch_feed(url):
             return None, "bağlantı hatası"
 
 
+# ============================================================
+# GOOGLE FLIGHTS KATMANI
+# ============================================================
 def resolve_dates(route):
-    """Route'daki tarihleri bugüne göre çöz. Geçmiş tarihleri otomatik kaydır."""
     today = datetime.now(timezone.utc).date()
     min_date = today + timedelta(days=3)
 
@@ -228,7 +210,6 @@ def resolve_dates(route):
 
 
 def check_google_flights_watch():
-    """Google Flights rotalarını tara, eşik altındakileri Telegram'a gönder."""
     gf_state = load_gf_state()
     first_run = not os.path.exists(GF_STATE_FILE)
     today = datetime.now(timezone.utc).date()
@@ -294,7 +275,6 @@ def check_google_flights_watch():
         except Exception as e:
             print(f"  [{name}] hata: {type(e).__name__}: {e}")
 
-    # Eski state key'lerini temizle (geçmiş tarihli)
     today_str = str(today)
     removed = 0
     for k in list(gf_state.keys()):
@@ -310,6 +290,227 @@ def check_google_flights_watch():
     return alerts
 
 
+# ============================================================
+# UCUZA UÇ KATMANI
+# ============================================================
+def filter_tags(tags):
+    time_patterns = [
+        r"^\d+\s*(dakika|saat|gün|hafta|ay|yıl)\s*önce$",
+        r"^(dün|bugün)$",
+    ]
+    filtered, seen = [], set()
+    for tag in tags:
+        t = tag.strip()
+        if not t or any(re.match(p, t.lower()) for p in time_patterns):
+            continue
+        if t in seen:
+            continue
+        seen.add(t)
+        filtered.append(t)
+    return filtered
+
+
+def parse_ucuzauc_main(html):
+    soup = BeautifulSoup(html, "html.parser")
+    routes, warnings = {}, []
+
+    for row in soup.find_all("tr"):
+        cells = row.find_all("td")
+        if len(cells) < 4:
+            continue
+
+        route_raw = cells[0].get_text(" ", strip=True)
+        route_name = re.sub(r"\s*rehber\s*$", "", route_raw, flags=re.IGNORECASE).strip()
+        if not route_name:
+            continue
+
+        pub_text = cells[1].get_text(" ", strip=True)
+        pub_match = re.search(r"(\d+)", pub_text)
+        pub_count = int(pub_match.group(1)) if pub_match else None
+
+        price_date_text = cells[2].get_text(" ", strip=True)
+        price_match = re.search(r"(\d{1,3}(?:\.\d{3})*)\s*TL", price_date_text)
+        lowest = int(price_match.group(1).replace(".", "")) if price_match else None
+
+        date_match = re.search(r"(\d{1,2}\s+\w+\s+\d{4})", price_date_text)
+        caught_date = date_match.group(1) if date_match else None
+
+        route_href = None
+        for a in cells[3].find_all("a", href=True):
+            if "/ucuz-ucak-biletleri/" in a["href"]:
+                route_href = a["href"]
+                break
+
+        if pub_count is None or lowest is None:
+            warnings.append(f"{route_name}: pub={pub_count}, lowest={lowest}")
+            continue
+
+        routes[route_name] = {
+            "pub_count": pub_count,
+            "lowest_ever": lowest,
+            "caught_date": caught_date,
+            "href": route_href,
+        }
+
+    return routes, warnings
+
+
+def parse_ucuzauc_detail(html):
+    soup = BeautifulSoup(html, "html.parser")
+    text = soup.get_text(" ", strip=True)
+
+    current_match = re.search(r"(\d{1,3}\.\d{3})\s*₺", text)
+    current_price = int(current_match.group(1).replace(".", "")) if current_match else None
+
+    month_match = re.search(
+        r"en ucuz\s+([\wçğıöşüÇĞİÖŞÜ]+\s*\d+)\s*\(\s*([\d\.]+)\s*₺",
+        text, re.IGNORECASE
+    )
+    cheapest_month = month_match.group(1) if month_match else None
+    cheapest_month_price = int(month_match.group(2).replace(".", "")) if month_match else None
+
+    normal_match = re.search(r"aylık normal fiyat\s*([\d\.]+)\s*₺", text)
+    normal_price = int(normal_match.group(1).replace(".", "")) if normal_match else None
+
+    raw_tags = [t.get_text(strip=True) for t in soup.select("span.tag")[:10]]
+    tags = filter_tags(raw_tags)[:5]
+
+    return {
+        "current_price": current_price,
+        "cheapest_month": cheapest_month,
+        "cheapest_month_price": cheapest_month_price,
+        "normal_price": normal_price,
+        "tags": tags,
+    }
+
+
+def format_ucuzauc_notification(route_name, change, detail, href):
+    base = ""
+    if change["type"] == "new_record":
+        base = (
+            f"🏆 <b>[Ucuza Uç] {route_name}</b> — YENİ REKOR\n"
+            f"📉 {change['old_low']:,} ₺ → <b>{change['new_low']:,} ₺</b> "
+            f"(%{change['drop_pct']:.0f} düşüş)\n"
+            f"📅 Yakalandı: {change['data']['caught_date']}"
+        )
+    elif change["type"] == "new_publish":
+        base = (
+            f"🎯 <b>[Ucuza Uç] {route_name}</b> — YENİ FIRSAT\n"
+            f"📢 Yayın: {change['old_pub']} → {change['new_pub']}\n"
+            f"💰 En düşük: <b>{change['data']['lowest_ever']:,} ₺</b>\n"
+            f"📅 Yakalandı: {change['data']['caught_date']}"
+        )
+
+    if detail:
+        if detail.get("tags"):
+            base += f"\n🏷️ {', '.join(detail['tags'][:3])}"
+        current = detail.get("current_price")
+        normal = detail.get("normal_price")
+        if current and normal:
+            diff = abs(normal - current) / normal * 100
+            direction = "altında ✅" if current < normal else "üstünde ⚠️"
+            base += f"\n💰 Şu an: {current:,} ₺ (normalin %{diff:.0f} {direction})"
+        if detail.get("cheapest_month") and detail.get("cheapest_month_price"):
+            base += f"\n🗓️ En ucuz ay: {detail['cheapest_month']} ({detail['cheapest_month_price']:,} ₺)"
+
+    url = f"https://www.ucuzauc.org{href}" if href and href.startswith("/") else (
+        href or f"https://www.ucuzauc.org/ucuz-ucak-biletleri/istanbul-{route_name.lower()}"
+    )
+    base += f"\n🔗 {url}"
+    return base
+
+
+def check_ucuzauc_all():
+    state = load_ucuzauc_state()
+    first_run = not os.path.exists(UCUZAUC_STATE_FILE)
+
+    print("\n--- Ucuza Uç ---")
+    try:
+        resp = requests.get(UCUZAUC_URL, headers=HEADERS, timeout=30)
+        if resp.status_code != 200:
+            print(f"  HTTP {resp.status_code}, atlandı")
+            return 0
+        html_text = resp.text
+    except Exception as e:
+        print(f"  fetch hata: {e}")
+        return 0
+
+    routes, warnings = parse_ucuzauc_main(html_text)
+    print(f"  {len(routes)} rota parse, {len(warnings)} uyarı")
+    if warnings:
+        for w in warnings[:3]:
+            print(f"    ⚠️ {w}")
+
+    if first_run:
+        for name, data in routes.items():
+            state[name] = {
+                "pub_count": data["pub_count"],
+                "lowest_ever": data["lowest_ever"],
+                "caught_date": data["caught_date"],
+                "href": data["href"],
+            }
+        save_ucuzauc_state(state)
+        print(f"  İlk kayıt: {len(routes)} rota (bildirim yok)")
+        return 0
+
+    changes = []
+    for name, data in routes.items():
+        old = state.get(name)
+        if not old:
+            continue
+
+        if data["pub_count"] > old.get("pub_count", 0):
+            changes.append({
+                "route": name, "type": "new_publish",
+                "old_pub": old["pub_count"], "new_pub": data["pub_count"],
+                "data": data,
+            })
+        elif data["lowest_ever"] < old.get("lowest_ever", 10**9):
+            drop_pct = (old["lowest_ever"] - data["lowest_ever"]) / old["lowest_ever"] * 100
+            changes.append({
+                "route": name, "type": "new_record",
+                "old_low": old["lowest_ever"], "new_low": data["lowest_ever"],
+                "drop_pct": drop_pct, "data": data,
+            })
+
+    alerts = 0
+    for change in changes[:MAX_NOTIFY]:
+        name = change["route"]
+        href = change["data"].get("href")
+        detail = None
+
+        if href:
+            try:
+                detail_url = f"https://www.ucuzauc.org{href}" if href.startswith("/") else href
+                detail_resp = requests.get(detail_url, headers=HEADERS, timeout=30)
+                if detail_resp.status_code == 200:
+                    detail = parse_ucuzauc_detail(detail_resp.text)
+            except Exception as e:
+                print(f"  [{name}] detay hata: {e}")
+
+        msg = format_ucuzauc_notification(name, change, detail, href)
+        send_telegram(msg)
+        alerts += 1
+
+    if len(changes) > MAX_NOTIFY:
+        send_telegram(f"ℹ️ Ucuza Uç: {len(changes)} değişiklik, ilk {MAX_NOTIFY} gönderildi")
+
+    for name, data in routes.items():
+        state[name] = {
+            "pub_count": data["pub_count"],
+            "lowest_ever": data["lowest_ever"],
+            "caught_date": data["caught_date"],
+            "href": data["href"],
+        }
+
+    save_ucuzauc_state(state)
+    print(f"  {len(changes)} değişiklik, {alerts} bildirim")
+    return alerts
+
+
+# ============================================================
+# ANA AKIŞ
+# ============================================================
 def main():
     first_run = not os.path.exists(SEEN_FILE)
     seen = load_seen()
@@ -359,10 +560,9 @@ def main():
             source_seen.add(item_id)
             new_items.append((source, title, link))
 
-    # --- Google Flights watch ---
     check_google_flights_watch()
+    check_ucuzauc_all()
 
-    # --- RSS Bildirimler ---
     if first_run:
         if new_items:
             by_source = {}
@@ -403,3 +603,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
