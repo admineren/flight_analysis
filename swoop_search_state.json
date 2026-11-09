@@ -1,0 +1,14 @@
+{
+  "IST → Hong Kong|2027-01-08|2027-01-18": {
+    "below_threshold": false,
+    "last_tl": 37100.0
+  },
+  "IST → Manila|2027-01-08|2027-01-22": {
+    "below_threshold": false,
+    "last_tl": 45300.0
+  },
+  "IST → Singapore|2027-01-08|2027-01-18": {
+    "below_threshold": false,
+    "last_tl": 38500.0
+  }
+}
