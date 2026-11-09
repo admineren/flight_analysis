@@ -1,9 +1,11 @@
 """
-Swoop deals() + watch_deals() testi.
+Swoop deals() + watch_deals() + price_deal() testi.
+airportsdata kurulu olduğunda region filtreleri çalışır.
 Telegram'a mesaj GÖNDERMEZ, sadece loglara yazar.
 """
 import json
 import os
+import time
 from datetime import datetime, timedelta, timezone
 
 from swoop import deals, watch_deals, price_deal
@@ -13,92 +15,104 @@ print("=" * 80)
 print(f"SWOOP DEALS TESTİ — {datetime.now(timezone.utc).isoformat()}")
 print("=" * 80)
 
+# airportsdata kurulu mu?
+try:
+    import airportsdata
+    print("✅ airportsdata kurulu — region filtreleri çalışacak")
+except ImportError:
+    print("❌ airportsdata KURULU DEĞİL — region filtreleri boş dönecek")
+
 
 # ============================================================
-# 1. BASİT DEALS ÇAĞRISI (filtresiz)
+# 1. BASİT DEALS (filtresiz — Google ne öneriyor?)
 # ============================================================
 print("\n" + "=" * 80)
-print("1. BASİT DEALS (filtresiz — Google ne öneriyor?)")
+print("1. BASİT DEALS (filtresiz)")
 print("=" * 80)
 
 try:
     result = deals("IST")
-    print(f"Toplam deal: {len(result.deals)}")
-    print(f"Origin: {result.origin}")
-    print(f"Partial: {result.partial}")
+    print(f"Toplam deal: {len(result.deals)} | Partial: {result.partial}")
 
-    # En yüksek indirimli ilk 10
     sorted_deals = sorted(
         [d for d in result.deals if d.discount_pct],
         key=lambda d: d.discount_pct,
         reverse=True
-    )[:10]
+    )[:15]
 
-    print(f"\n{'#':>2} {'Hedef':25s} {'Ülke':15s} {'Gidiş':12s} {'Dönüş':12s} {'Fiyat':>8s} {'Normal':>8s} {'%':>4s}")
-    print("-" * 100)
+    print(f"\n{'#':>2} {'Hedef':22s} {'Ülke':14s} {'Gidiş':11s} {'Dönüş':11s} {'Fiyat':>7s} {'Normal':>7s} {'%':>4s} {'Bölge':12s}")
+    print("-" * 115)
     for i, d in enumerate(sorted_deals, 1):
-        print(f"{i:>2} {d.destination_city[:23]:25s} {d.destination_country[:13]:15s} "
-              f"{d.departure_date:12s} {d.return_date or '-':12s} "
-              f"{d.price:>6} {d.typical_price or 0:>8} {d.discount_pct or 0:>3}%")
-
+        region = str(d.destination_region) if d.destination_region else "-"
+        print(f"{i:>2} {d.destination_city[:20]:22s} {d.destination_country[:12]:14s} "
+              f"{d.departure_date:11s} {d.return_date or '-':11s} "
+              f"{d.price:>5} {d.typical_price or 0:>7} {d.discount_pct or 0:>3}% {region[:12]:12s}")
+    time.sleep(2)  # rate limit
 except Exception as e:
-    print(f"HATA: {type(e).__name__}: {e}")
+    print(f"HATA: {type(e).__name__}: {str(e)[:200]}")
 
 
 # ============================================================
-# 2. FİLTRELİ DEALS (Asya + maksimum fiyat + indirim)
+# 2. HER BÖLGE İÇİN DEALS
 # ============================================================
 print("\n" + "=" * 80)
-print("2. FİLTRELİ DEALS (bölge=Asya, maks=700 USD, min %15 indirim)")
+print("2. BÖLGE BAZINDA DEALS (maks $800, min %15 indirim)")
 print("=" * 80)
 
-# depart_window: önümüzdeki 60 gün
-today = datetime.now(timezone.utc).date()
-depart_start = (today + timedelta(days=30)).strftime("%Y-%m-%d")
-depart_end = (today + timedelta(days=90)).strftime("%Y-%m-%d")
-
-try:
-    result_filtered = deals(
-        "IST",
-        depart_window=(depart_start, depart_end),
-        trip_length=(5, 14),
-        max_price=700,
-        min_discount_pct=15,
-        region="asia",
-    )
-    print(f"Toplam filtered deal: {len(result_filtered.deals)}")
-    print(f"Depart window: {depart_start} → {depart_end}")
-
-    if result_filtered.deals:
-        print(f"\n{'#':>2} {'Hedef':25s} {'Gidiş':12s} {'Dönüş':12s} {'Fiyat':>8s} {'Normal':>8s} {'%':>4s} {'Havayolu':20s}")
-        print("-" * 110)
-        for i, d in enumerate(result_filtered.deals[:15], 1):
-            airlines = ",".join(d.airline_names[:2]) if d.airline_names else "?"
-            print(f"{i:>2} {d.destination_city[:23]:25s} "
-                  f"{d.departure_date:12s} {d.return_date or '-':12s} "
-                  f"{d.price:>6} {d.typical_price or 0:>8} {d.discount_pct or 0:>3}% "
-                  f"{airlines[:20]}")
-
-        # Örnek Deal detayı
-        print(f"\n--- İlk Deal detayı ---")
-        first = result_filtered.deals[0]
-        for field in ["origin", "destination", "destination_city", "destination_country",
-                      "departure_date", "return_date", "price", "typical_price",
-                      "discount_pct", "airlines", "airline_names", "duration_minutes",
-                      "stops", "trip_days", "currency", "booking_url"]:
-            print(f"  {field}: {getattr(first, field, '?')}")
-    else:
-        print("Filtreye uyan deal yok.")
-
-except Exception as e:
-    print(f"HATA: {type(e).__name__}: {e}")
+region_results = {}
+for region in ["europe", "asia", "americas", "africa", "oceania"]:
+    try:
+        time.sleep(1.5)
+        r = deals("IST", region=region, max_price=800, min_discount_pct=15)
+        region_results[region] = r
+        print(f"\n🌍 {region.upper()}: {len(r.deals)} deal")
+        for d in r.deals[:5]:
+            print(f"  • {d.destination_city} ({d.destination_country}) — "
+                  f"${d.price} (%{d.discount_pct}) {d.departure_date}→{d.return_date}")
+    except Exception as e:
+        region_results[region] = None
+        print(f"\n🌍 {region.upper()}: HATA — {type(e).__name__}: {str(e)[:100]}")
 
 
 # ============================================================
-# 3. WATCH_DEALS İLE STATE YÖNETİMİ
+# 3. FİLTRELİ ASYA DEALS (detaylı)
 # ============================================================
 print("\n" + "=" * 80)
-print("3. WATCH_DEALS (cache + diff)")
+print("3. ASYA DEALS (detaylı tablo)")
+print("=" * 80)
+
+asia_deals = region_results.get("asia")
+if asia_deals and asia_deals.deals:
+    print(f"\n{'#':>2} {'Hedef':22s} {'Gidiş':11s} {'Dönüş':11s} {'Fiyat':>7s} {'Normal':>7s} {'%':>4s} {'Süre':>6s} {'Akt':>3s} {'Havayolu':20s}")
+    print("-" * 115)
+    for i, d in enumerate(asia_deals.deals[:15], 1):
+        airlines = ",".join(d.airline_names[:2]) if d.airline_names else "?"
+        dur = f"{d.duration_minutes}dk" if d.duration_minutes else "?"
+        print(f"{i:>2} {d.destination_city[:20]:22s} "
+              f"{d.departure_date:11s} {d.return_date or '-':11s} "
+              f"{d.price:>5} {d.typical_price or 0:>7} {d.discount_pct or 0:>3}% "
+              f"{dur:>6} {d.stops if d.stops is not None else '?':>3} {airlines[:20]}")
+
+    # İlk deal detayı
+    print(f"\n--- İlk Asya Deal detayı ---")
+    first = asia_deals.deals[0]
+    for field in ["origin", "destination", "destination_city", "destination_country",
+                  "departure_date", "return_date", "price", "typical_price",
+                  "discount_pct", "airlines", "airline_names", "duration_minutes",
+                  "stops", "trip_days", "currency", "booking_url", "destination_region"]:
+        val = getattr(first, field, '?')
+        if field == "booking_url" and val:
+            val = str(val)[:100]
+        print(f"  {field}: {val}")
+else:
+    print("Asya deal yok (region filtresi veya upstream sorunu)")
+
+
+# ============================================================
+# 4. WATCH_DEALS (cache + diff)
+# ============================================================
+print("\n" + "=" * 80)
+print("4. WATCH_DEALS (cache + diff)")
 print("=" * 80)
 
 CACHE_PATH = "/tmp/swoop_deals_cache.json"
@@ -106,76 +120,87 @@ CACHE_PATH = "/tmp/swoop_deals_cache.json"
 # İlk çalıştırma
 print("\n--- İlk çalıştırma (cache yok) ---")
 try:
-    r1 = deals("IST", region="asia", max_price=700, min_discount_pct=10)
+    r1 = deals("IST", region="asia", max_price=800, min_discount_pct=15)
     diff1 = watch_deals(r1, cache_path=CACHE_PATH, allow_empty=True)
-    print(f"Cache oluşturuldu: {CACHE_PATH}")
+    print(f"Cache: {CACHE_PATH}")
     print(f"  new: {len(diff1.new)}")
     print(f"  gone: {len(diff1.gone)}")
     print(f"  price_changes: {len(diff1.price_changes)}")
     print(f"  unchanged: {len(diff1.unchanged)}")
-    print(f"  Cache dosya boyutu: {os.path.getsize(CACHE_PATH) / 1024:.1f} KB")
+    print(f"  Cache boyutu: {os.path.getsize(CACHE_PATH)} byte")
+    time.sleep(2)
 except Exception as e:
-    print(f"HATA: {type(e).__name__}: {e}")
+    print(f"HATA: {type(e).__name__}: {str(e)[:150]}")
 
-# İkinci çalıştırma (aynı sorgu, değişiklik yok)
-print("\n--- İkinci çalıştırma (hemen ardından, değişiklik beklenmez) ---")
+# İkinci çalıştırma
+print("\n--- İkinci çalıştırma (aynı sorgu) ---")
 try:
-    r2 = deals("IST", region="asia", max_price=700, min_discount_pct=10)
+    r2 = deals("IST", region="asia", max_price=800, min_discount_pct=15)
     diff2 = watch_deals(r2, cache_path=CACHE_PATH)
     print(f"  new: {len(diff2.new)}")
     print(f"  gone: {len(diff2.gone)}")
     print(f"  price_changes: {len(diff2.price_changes)}")
     print(f"  unchanged: {len(diff2.unchanged)}")
 except Exception as e:
-    print(f"HATA: {type(e).__name__}: {e}")
+    print(f"HATA: {type(e).__name__}: {str(e)[:150]}")
 
 
 # ============================================================
-# 4. PRICE_DEAL İLE DOĞRULAMA
+# 5. PRICE_DEAL (doğrulama)
 # ============================================================
 print("\n" + "=" * 80)
-print("4. PRICE_DEAL (bir deal'in güncel fiyatını doğrula)")
+print("5. PRICE_DEAL (güncel fiyat doğrulama)")
 print("=" * 80)
 
-try:
-    if result_filtered.deals:
-        target_deal = result_filtered.deals[0]
-        print(f"Hedef: {target_deal.destination_city} ({target_deal.departure_date})")
-        print(f"Deals fiyatı: {target_deal.price} {target_deal.currency or 'USD'}")
-
-        price_result = price_deal(target_deal)
+if asia_deals and asia_deals.deals:
+    target = asia_deals.deals[0]
+    print(f"Hedef: {target.destination_city} ({target.departure_date}→{target.return_date})")
+    print(f"Deals fiyatı: ${target.price}")
+    try:
+        time.sleep(2)
+        price_result = price_deal(target)
         if price_result:
-            print(f"  Doğrulama başarılı!")
-            print(f"  price: {price_result.price}")
-            print(f"  currency: {price_result.currency}")
+            print(f"  ✅ Doğrulama başarılı")
+            print(f"  price: {price_result.price} {price_result.currency}")
             print(f"  fare_brand: {price_result.fare_brand}")
             print(f"  is_estimate: {price_result.is_estimate}")
             print(f"  booking_options: {len(price_result.booking_options)}")
         else:
-            print(f"  price_deal None döndü (deal expire olmuş olabilir)")
-except Exception as e:
-    print(f"HATA: {type(e).__name__}: {e}")
+            print(f"  ⚠️ price_deal None (deal expire olmuş olabilir)")
+    except Exception as e:
+        print(f"  HATA: {type(e).__name__}: {str(e)[:150]}")
+else:
+    print("Test edilecek deal yok.")
 
 
 # ============================================================
-# 5. ÖNERİLEN TELEGRAM BİLDİRİM FORMATI
+# 6. ÖNERİLEN TELEGRAM BİLDİRİM FORMATLARI
 # ============================================================
 print("\n" + "=" * 80)
-print("5. ÖNERİLEN TELEGRAM BİLDİRİMİ")
+print("6. ÖNERİLEN TELEGRAM BİLDİRİMLERİ")
 print("=" * 80)
 
-if result_filtered.deals:
-    for i, d in enumerate(result_filtered.deals[:3], 1):
+if asia_deals and asia_deals.deals:
+    print("\n--- YENİ FIRSAT ---")
+    for d in asia_deals.deals[:2]:
         airlines = ", ".join(d.airline_names[:2]) if d.airline_names else "?"
         msg = (
             f"🎯 <b>[Swoop Deals] IST → {d.destination_city}</b>\n"
             f"📅 {d.departure_date} → {d.return_date}\n"
-            f"💰 <b>${d.price}</b> (normal: ${d.typical_price}, "
-            f"<b>%{d.discount_pct} indirim</b>)\n"
+            f"💰 <b>${d.price}</b> (normal ${d.typical_price}, <b>%{d.discount_pct} indirim</b>)\n"
             f"🛫 {airlines} | {d.stops or '?'} aktarma | {d.duration_minutes or '?'}dk\n"
         )
         if d.booking_url:
             msg += f"🔗 {d.booking_url[:100]}"
-        print(f"\n--- {i}. ---\n{msg}")
+        print(f"\n{msg}")
+
+# Region bazında özet
+print("\n--- BÖLGE ÖZETİ ---")
+for reg, r in region_results.items():
+    if r and r.deals:
+        avg_disc = sum(d.discount_pct for d in r.deals if d.discount_pct) / len(r.deals)
+        print(f"  {reg:10s}: {len(r.deals)} deal, ort. %{avg_disc:.0f} indirim")
+    else:
+        print(f"  {reg:10s}: 0 deal")
 
 print("\n=== Test tamamlandı ===")
