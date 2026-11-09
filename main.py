@@ -33,8 +33,18 @@ GF_STATE_FILE = "gf_state.json"
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-KEYWORDS_SUBSTR = ["istanbul", "sabiha", "türkiye", "turkey", "stambuł"]
+KEYWORDS_SUBSTR = ["istanbul", "sabiha", "stambuł"]
 MAX_NOTIFY = 5
+
+HOTEL_PACKAGE_WORDS = [
+    "hotel", "otel", "resort", "all-inclusive", "all inclusive",
+    "package", "paket", "villa", "apartment", "cruise",
+    "holiday break", "tatil", "konaklama", "accommodation",
+]
+FLIGHT_WORDS = [
+    "flight", "fly", "airline", "airfare", "airline ticket",
+    "uçuş", "bilet", "ticket", "one-way", "roundtrip", "round-trip",
+]
 
 HEADERS = {
     "User-Agent": (
@@ -151,7 +161,16 @@ def send_telegram(text):
 
 
 def matches_istanbul(haystack):
-    if any(k in haystack.lower() for k in KEYWORDS_SUBSTR):
+    text = haystack.lower()
+
+    # Önce: otel/paket filtresi (uçuş kelimesi yoksa atla)
+    has_hotel = any(w in text for w in HOTEL_PACKAGE_WORDS)
+    has_flight = any(w in text for w in FLIGHT_WORDS)
+    if has_hotel and not has_flight:
+        return False
+
+    # Sonra: İstanbul kalkış kontrolü
+    if any(k in text for k in KEYWORDS_SUBSTR):
         return True
     if re.search(r"\bIST\b", haystack, re.IGNORECASE):
         return True
