@@ -2,7 +2,7 @@ import os
 import json
 import re
 import html as html_lib
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from curl_cffi import requests as curl_requests
 from bs4 import BeautifulSoup
 
@@ -11,6 +11,15 @@ STATE_FILE = "campaign_state.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+
+# Jenerik link metinleri — bunlar yerine URL slug'ından başlık türetilir
+GENERIC_LABELS = {
+    "detaylı bilgi", "detayli bilgi", "detay", "detaylar",
+    "buraya tıkla", "tıkla", "tikla", "link",
+    "click here", "more info", "read more", "learn more",
+    "devamını oku", "devamini oku", "incele", "keşfet",
+    "",
+}
 
 
 def load_state():
@@ -29,8 +38,11 @@ def load_state():
 
 
 def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
+    # Atomik yazma: yarıda kalırsa dosya bozulmaz
+    tmp = STATE_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    os.replace(tmp, STATE_FILE)
 
 
 def send_telegram(text):
@@ -63,6 +75,17 @@ def normalize(text):
     return t
 
 
+def make_label(url, label):
+    """Jenerik 'Detaylı bilgi' gibi etiketleri URL slug'ından türet."""
+    if not label or label.lower().strip() in GENERIC_LABELS:
+        path = urlparse(url).path.rstrip("/")
+        slug = path.split("/")[-1] if path else ""
+        if slug:
+            # "ucus-firsatlari-ogrenci-indirimi" → "Ucus Firsatlari Ogrenci Indirimi"
+            return slug.replace("-", " ").replace("_", " ").title()
+    return label
+
+
 def extract_items(html, selector, mode, base_url):
     html = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r"<style[^>]*>.*?</style>", " ", html, flags=re.DOTALL | re.IGNORECASE)
@@ -80,10 +103,10 @@ def extract_items(html, selector, mode, base_url):
             href = urljoin(base_url, a["href"])
             # UTM parametrelerini temizle (aynı kampanya farklı URL üretmesin)
             href = re.sub(r"[?&]utm_[^&]+", "", href).rstrip("?&")
-            # Link metnini de etiket olarak kullan
-            label = html_lib.unescape(a.get_text(" ", strip=True))
-            label = re.sub(r"\s+", " ", label).strip()
-            items[href] = label or href
+            # Link metnini etiket olarak kullan; jenerikse slug'dan türet
+            raw_label = html_lib.unescape(a.get_text(" ", strip=True))
+            raw_label = re.sub(r"\s+", " ", raw_label).strip()
+            items[href] = make_label(href, raw_label) or href
         else:  # text
             text = html_lib.unescape(node.get_text(" ", strip=True))
             text = re.sub(r"\s+", " ", text).strip()
