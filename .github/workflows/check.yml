@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
 
-# Aynı anda yalnızca bir çalıştırma; yenisi gelirse eskisini iptal et
 concurrency:
   group: flight-watcher
   cancel-in-progress: true
@@ -23,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install feedparser requests swoop-flights beautifulsoup4
+      - run: pip install feedparser requests beautifulsoup4
       - name: Run watcher
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -33,7 +32,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add seen.json gf_state.json ucuzauc_state.json
-          git commit -m "update seen state [skip ci]" || echo "no changes"
+          git add seen.json ucuzauc_state.json
+          git commit -m "update state [skip ci]" || echo "no changes"
           git pull --rebase origin main || true
           git push
