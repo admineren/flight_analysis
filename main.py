@@ -5,6 +5,7 @@ import html
 import re
 import feedparser
 import requests
+import time
 from datetime import datetime, timedelta, timezone
 from bs4 import BeautifulSoup
 from swoop import search as swoop_search
@@ -216,17 +217,34 @@ def check_google_flights_watch():
 
     print("\n--- Google Flights ---")
     alerts = 0
+    failed_routes = 0
 
-    for route in GOOGLE_FLIGHTS_WATCH:
+    for route_idx, route in enumerate(GOOGLE_FLIGHTS_WATCH):
         name = route["name"]
         depart, ret_date = resolve_dates(route)
         state_key = f"{name}|{depart}|{ret_date}"
 
-        try:
-            out = swoop_search(route["origin"], route["destination"], str(depart))
-            ret = swoop_search(route["destination"], route["origin"], str(ret_date))
+        # İstekler arası 2 saniye bekle (rate limit'e karşı)
+        if route_idx > 0:
+            time.sleep(2)
 
-            if not out.results or not ret.results:
+        try:
+            # Retry mekanizması: gRPC 13 hatası için 1 kez daha dene
+            out = ret = None
+            for attempt in range(2):
+                try:
+                    out = swoop_search(route["origin"], route["destination"], str(depart))
+                    ret = swoop_search(route["destination"], route["origin"], str(ret_date))
+                    break
+                except Exception as e:
+                    err_str = str(e)
+                    if attempt == 0 and ("gRPC status 13" in err_str or "INTERNAL" in err_str):
+                        print(f"  [{name}] geçici hata, 3sn sonra tekrar deneniyor...")
+                        time.sleep(3)
+                        continue
+                    raise
+
+            if not out or not ret or not out.results or not ret.results:
                 print(f"  [{name}] {depart}→{ret_date}: sonuç yok")
                 continue
 
@@ -273,7 +291,8 @@ def check_google_flights_watch():
                 "below_threshold": below,
             }
         except Exception as e:
-            print(f"  [{name}] hata: {type(e).__name__}: {e}")
+            failed_routes += 1
+            print(f"  [{name}] hata (atlandı): {type(e).__name__}: {str(e)[:100]}")
 
     today_str = str(today)
     removed = 0
@@ -286,7 +305,7 @@ def check_google_flights_watch():
         print(f"  🗑️ {removed} eski state temizlendi")
 
     save_gf_state(gf_state)
-    print(f"  Google Flights: {alerts} yeni alert")
+    print(f"  Google Flights: {alerts} alert, {failed_routes} başarısız rota")
     return alerts
 
 
