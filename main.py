@@ -59,37 +59,37 @@ GOOGLE_FLIGHTS_WATCH = [
         "name": "IST → Bangkok (esnek)",
         "origin": "IST", "destination": "BKK",
         "departure_offset_days": 90, "stay_days": 7,
-        "max_price_tl": 29500,
+        "max_price_tl": 29000,   # 33.850 → 29.000 (~%14 düşüş)
     },
     {
         "name": "IST → Kuala Lumpur (esnek)",
         "origin": "IST", "destination": "KUL",
         "departure_offset_days": 60, "stay_days": 14,
-        "max_price_tl": 25800,
+        "max_price_tl": 28000,   # 32.450 → 28.000 (~%14 düşüş)
     },
     {
         "name": "IST → Singapore (esnek)",
         "origin": "IST", "destination": "SIN",
         "departure_offset_days": 60, "stay_days": 10,
-        "max_price_tl": 30500,
+        "max_price_tl": 33000,   # 38.500 → 33.000 (~%14 düşüş)
     },
     {
         "name": "IST → Seoul (esnek)",
         "origin": "IST", "destination": "ICN",
         "departure_offset_days": 90, "stay_days": 10,
-        "max_price_tl": 29800,
+        "max_price_tl": 35000,   # 40.700 → 35.000 (~%14 düşüş)
     },
     {
         "name": "IST → Hong Kong (esnek)",
         "origin": "IST", "destination": "HKG",
         "departure_offset_days": 60, "stay_days": 10,
-        "max_price_tl": 34000,
+        "max_price_tl": 32000,   # 37.100 → 32.000 (~%14 düşüş)
     },
     {
         "name": "IST → Manila (esnek)",
         "origin": "IST", "destination": "MNL",
         "departure_offset_days": 60, "stay_days": 14,
-        "max_price_tl": 33500,
+        "max_price_tl": 39000,   # 45.300 → 39.000 (~%14 düşüş)
     },
 ]
 
