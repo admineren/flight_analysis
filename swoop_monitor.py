@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from datetime import datetime, timedelta, timezone
 
 from swoop import search as swoop_search, deals, watch_deals
@@ -12,34 +13,22 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 USD_TO_TL = 50.0
 
-# --- Sabit tarihli arama (search) rotaları ---
+# Sadece 2 rota (Turna'da olmayanlar) — rate limit için
 GOOGLE_FLIGHTS_WATCH = [
-    {"name": "IST → Bangkok", "origin": "IST", "destination": "BKK",
-     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 29000},
-    {"name": "IST → Kuala Lumpur", "origin": "IST", "destination": "KUL",
-     "departure_offset_days": 60, "stay_days": 14, "max_price_tl": 28000},
-    {"name": "IST → Singapore", "origin": "IST", "destination": "SIN",
-     "departure_offset_days": 60, "stay_days": 10, "max_price_tl": 33000},
-    {"name": "IST → Seoul", "origin": "IST", "destination": "ICN",
-     "departure_offset_days": 120, "stay_days": 10, "max_price_tl": 35000},
-    {"name": "IST → Hong Kong", "origin": "IST", "destination": "HKG",
-     "departure_offset_days": 60, "stay_days": 10, "max_price_tl": 32000},
-    {"name": "IST → Manila", "origin": "IST", "destination": "MNL",
-     "departure_offset_days": 60, "stay_days": 14, "max_price_tl": 39000},
+    {"name": "IST → London", "origin": "IST", "destination": "LHR",
+     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 8000},
+    {"name": "IST → Dubai", "origin": "IST", "destination": "DXB",
+     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 12000},
 ]
 
-# --- Deals filtre kuralları (lokal) ---
-DEALS_MIN_DISCOUNT_PCT = 40          # %40+ → her bölgeden bildir
-DEALS_ASIA_MIN_DISCOUNT_PCT = 25     # Asya %25+ → bildir
-DEALS_MAX_PRICE_USD = 800            # $800 üstü deal'leri ele
+DEALS_MIN_DISCOUNT_PCT = 40
+DEALS_ASIA_MIN_DISCOUNT_PCT = 25
+DEALS_MAX_PRICE_USD = 800
 
 MAX_NOTIFY = 5
-REQUEST_DELAY = 2  # swoop çağrıları arasında saniye
+REQUEST_DELAY = 3  # swoop çağrıları arasında 3 saniye
 
 
-# ============================================================
-# STATE
-# ============================================================
 def _load_state(path):
     if not os.path.exists(path):
         return {}
@@ -61,9 +50,6 @@ def _save_state(path, data):
     os.replace(tmp, path)
 
 
-# ============================================================
-# TELEGRAM
-# ============================================================
 def send_telegram(text):
     import requests
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -78,28 +64,12 @@ def send_telegram(text):
         print("Telegram exception:", e)
 
 
-# ============================================================
-# SEARCH KATMANI (6 rota, sabit tarih)
-# ============================================================
 def resolve_dates(route):
     today = datetime.now(timezone.utc).date()
     min_date = today + timedelta(days=3)
 
-    if "departure_offset_days" in route:
-        depart = today + timedelta(days=route["departure_offset_days"])
-    else:
-        depart = datetime.strptime(route["departure"], "%Y-%m-%d").date()
-        if depart < min_date:
-            shift = (min_date - depart).days + 90
-            depart = depart + timedelta(days=shift)
-
-    if "stay_days" in route:
-        ret = depart + timedelta(days=route["stay_days"])
-    else:
-        ret = datetime.strptime(route["return_date"], "%Y-%m-%d").date()
-        if ret < depart + timedelta(days=1):
-            ret = depart + timedelta(days=7)
-
+    depart = today + timedelta(days=route["departure_offset_days"])
+    ret = depart + timedelta(days=route["stay_days"])
     return depart, ret
 
 
@@ -113,9 +83,8 @@ def _search_leg(origin, dest, date_str):
     except Exception as e:
         err = str(e)
         if "gRPC status 13" in err or "INTERNAL" in err:
-            print(f"    geçici hata, 3sn sonra tekrar...")
-            import time
-            time.sleep(3)
+            print(f"    geçici hata, 5sn sonra tekrar...")
+            time.sleep(5)
             try:
                 out = swoop_search(origin, dest, date_str)
                 if not out.results:
@@ -123,21 +92,19 @@ def _search_leg(origin, dest, date_str):
                 prices = [opt.price for opt in out.results if opt.price]
                 return min(prices) if prices else None
             except Exception as e2:
-                print(f"    tekrar hata: {type(e2).__name__}: {str(e2)[:80]}")
+                print(f"    tekrar hata: {type(e2).__name__}")
                 return None
-        print(f"    hata: {type(e).__name__}: {err[:80]}")
+        print(f"    hata: {type(e).__name__}")
         return None
 
 
-def check_google_flights_watch():
-    import time
+def check_search():
     state = _load_state(SEARCH_STATE_FILE)
     first_run = not os.path.exists(SEARCH_STATE_FILE)
     today = datetime.now(timezone.utc).date()
 
-    print("\n--- Google Flights Search ---")
+    print("\n--- Swoop Search (2 rota) ---")
     alerts = 0
-    failed = 0
 
     for idx, route in enumerate(GOOGLE_FLIGHTS_WATCH):
         name = route["name"]
@@ -148,12 +115,11 @@ def check_google_flights_watch():
             time.sleep(REQUEST_DELAY)
 
         out_min = _search_leg(route["origin"], route["destination"], str(depart))
-        time.sleep(0.5)
+        time.sleep(1)
         ret_min = _search_leg(route["destination"], route["origin"], str(ret_date))
 
         if out_min is None or ret_min is None:
-            failed += 1
-            print(f"  [{name}] {depart}→{ret_date}: sonuç yok/başarısız")
+            print(f"  [{name}] {depart}→{ret_date}: başarısız")
             continue
 
         total_usd = out_min + ret_min
@@ -171,22 +137,22 @@ def check_google_flights_watch():
                 trend = f" (↓ %{pct:.0f})"
 
         print(f"  [{name}] {depart}→{ret_date} | "
-              f"${total_usd} = {total_tl:,.0f} TL | "
-              f"eşik {route['max_price_tl']:,} | altında: {below}{trend}")
+              f"${total_usd} = {total_tl:,.0f} TL | eşik {route['max_price_tl']:,} | "
+              f"altında: {below}{trend}")
 
         if first_run:
             pass
         elif below and not was_below:
             send_telegram(
-                f"✈️ <b>[Google Flights] {name}</b>\n"
+                f"✈️ <b>[Swoop Search] {name}</b>\n"
                 f"📅 {depart} → {ret_date}\n"
                 f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}\n"
-                f"⚠️ <i>USD bazlı tahmin, doğrula</i>"
+                f"⚠️ <i>USD tahmini, doğrula</i>"
             )
             alerts += 1
         elif below and was_below and trend:
             send_telegram(
-                f"📉 <b>[Google Flights] {name}</b> daha da düştü\n"
+                f"📉 <b>[Swoop Search] {name}</b> daha da düştü\n"
                 f"📅 {depart} → {ret_date}\n"
                 f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}"
             )
@@ -202,14 +168,11 @@ def check_google_flights_watch():
             del state[k]
 
     _save_state(SEARCH_STATE_FILE, state)
-    print(f"  Search: {alerts} alert, {failed} başarısız rota")
+    print(f"  Search: {alerts} alert")
     return alerts
 
 
-# ============================================================
-# DEALS KATMANI (tek çağrı + lokal filtre)
-# ============================================================
-def check_swoop_deals():
+def check_deals():
     print("\n--- Swoop Deals ---")
 
     try:
@@ -266,16 +229,14 @@ def check_swoop_deals():
         return 0
 
 
-# ============================================================
-# MAIN
-# ============================================================
 def main():
     print("=" * 60)
     print(f"Swoop Monitor — {datetime.now(timezone.utc).isoformat()}")
     print("=" * 60)
 
-    search_alerts = check_google_flights_watch()
-    deals_alerts = check_swoop_deals()
+    search_alerts = check_search()
+    time.sleep(2)
+    deals_alerts = check_deals()
 
     print("\n" + "=" * 60)
     print(f"Toplam: {search_alerts} search + {deals_alerts} deals")
