@@ -2,7 +2,7 @@ name: Swoop Monitor
 
 on:
   schedule:
-    - cron: "0 */12 * * *"   # Günde 2 kez (UTC 00:00, 12:00)
+    - cron: "0 */6 * * *"
   workflow_dispatch: {}
 
 permissions:
