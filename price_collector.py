@@ -29,19 +29,20 @@ WATCHLIST = [
 ]
 
 
-def get_todays_routes():
-    """Bugünün gün numarasına göre bir grubu seç (round-robin)."""
-    from datetime import datetime
-    day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
-    group = day_of_year % 2
+def get_routes_for_current_slot():
+    """Her 6 saatlik dilimde grup değiştir:
+       00:00-05:59 → Grup 0
+       06:00-11:59 → Grup 1
+       12:00-17:59 → Grup 0
+       18:00-23:59 → Grup 1
+    """
+    now = datetime.now(timezone.utc)
+    slot = (now.hour // 6) % 2  # 0 veya 1
     
     half = len(WATCHLIST) // 2
-    if group == 0:
-        routes = WATCHLIST[:half]
-    else:
-        routes = WATCHLIST[half:]
+    routes = WATCHLIST[:half] if slot == 0 else WATCHLIST[half:]
     
-    print(f"📅 Gün {day_of_year} → Grup {group} ({len(routes)} rota)", flush=True)
+    print(f"🕐 Saat {now.hour:02d}:00 UTC → Grup {slot} ({len(routes)} rota)", flush=True)
     return routes
 
 # ============================================================
@@ -131,7 +132,9 @@ def scan_route(route, today_str, now_str):
 
             best = q.offers[0]
             price = best.price
-            airline = best.airline
+            raw_airlines = best.airline.split(", ") if best.airline else []
+            unique_airlines = list(dict.fromkeys(raw_airlines)) # Sırayı bozmadan tekrarları siler
+            airline = ", ".join(unique_airlines) if unique_airlines else "?"
             duration = best.duration_hours or 0.0
             stops = best.stops_count if best.stops_count is not None else 0
 
@@ -201,7 +204,7 @@ def main():
     payloads = []
     pending_state_updates = {}  # Gönderim başarılıysa uygulanacak
 
-    routes_today = get_todays_routes()
+    routes_today = get_routes_for_current_slot()
 
     for route in routes_today:
         candidate = scan_route(route, today_str, now_str)
