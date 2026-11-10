@@ -38,7 +38,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -f telegram_state.json ]; then
-            git add telegram_state.json
+            git add data/telegram_state.json
             git commit -m "update telegram state [skip ci]" || echo "no changes"
             git pull --rebase origin main || true
             git push
