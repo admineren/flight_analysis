@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add swoop_search_state.json swoop_deals_state.json
+          git add data/swoop_search_state.json data/swoop_deals_state.json
           git commit -m "update swoop state [skip ci]" || echo "no changes"
           git pull --rebase origin main || true
           git push
