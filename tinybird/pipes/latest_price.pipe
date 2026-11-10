@@ -1,3 +1,5 @@
+TOKEN telegram_read_token READ
+
 NODE latest_price_node
 SQL >
     SELECT price, airline, observed_at
