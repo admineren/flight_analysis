@@ -21,9 +21,15 @@ USD_TO_TL = 50.0
 
 GOOGLE_FLIGHTS_WATCH = [
     {"name": "IST → Tbilisi", "origin": "IST", "destination": "TBS",
-     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 11000},
+     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 11000},
     {"name": "IST → Baku", "origin": "IST", "destination": "GYD",
-     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 17000},
+     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 17000},
+    {"name": "IST → Belgrad", "origin": "IST", "destination": "BEG",
+     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 11000},
+    {"name": "IST → Minsk", "origin": "IST", "destination": "MSQ",
+     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 30000},
+    {"name": "IST → Saraybosna", "origin": "IST", "destination": "SJJ",
+     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 8500},
 ]
 
 DEALS_MIN_DISCOUNT_PCT = 40
