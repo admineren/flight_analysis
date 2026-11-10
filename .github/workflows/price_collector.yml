@@ -2,7 +2,7 @@ name: Price Collector
 
 on:
   schedule:
-    - cron: "0 */12 * * *"  # Günde 2 kez (09:00 ve 21:00 TSİ)
+    - cron: "0 */12 * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -11,6 +11,8 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: 1   # Logların anında ekrana düşmesini sağlar
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,17 +20,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install viajante requests
+      - name: Install dependencies
+        run: pip install viajante requests
       - name: Collect and Send
         env:
           TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
           TB_INGEST_TOKEN: ${{ secrets.TB_INGEST_TOKEN }}
-        run: python price_collector.py
+        run: python -u price_collector.py   # -u parametresi çıktıyı zorlar
       - name: Persist state
+        if: always()  # Hata olsa bile state kaydetmeyi dene
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add price_collector_state.json
-          git commit -m "update price collector state [skip ci]" || echo "no changes"
-          git pull --rebase origin main || true
-          git push
+          if [ -f price_collector_state.json ]; then
+            git add price_collector_state.json
+            git commit -m "update price collector state [skip ci]" || echo "no changes"
+            git pull --rebase origin main || true
+            git push
+          else
+            echo "State file not found, nothing to commit."
+          fi
