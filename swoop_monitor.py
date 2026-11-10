@@ -33,12 +33,12 @@ MAX_NOTIFY = 5
 REQUEST_DELAY = 3
 
 # ============================================================
-# VİZE VERİSİ (Kapsamlı Sözlük)
+# VİZE VERİSİ
 # ============================================================
 VISA_DATA = {}
 VISA_MAP = {"green": set(), "blue": set(), "yellow": set(), "red": set()}
 
-# Google Flights'ın döndürdüğü İngilizce ülke isimlerini ISO 3166-1 alpha-2 kodlarına çeviren sözlük
+# Kapsamlı ülke ismi -> ISO eşleme sözlüğü
 COUNTRY_NAME_TO_ISO = {
     "Afghanistan": "AF", "Albania": "AL", "Algeria": "DZ", "Andorra": "AD", "Angola": "AO",
     "Antigua and Barbuda": "AG", "Argentina": "AR", "Armenia": "AM", "Australia": "AU",
@@ -105,7 +105,8 @@ def load_visa_data():
             if codes_str:
                 VISA_MAP[color] = set(c.strip() for c in codes_str.split(",") if c.strip())
         
-        print(f"Vize verisi yüklendi. (Güncelleme: {VISA_DATA.get('meta', {}).get('generated_at', '?')[:10]})")
+        date_str = VISA_DATA.get('meta', {}).get('generated_at', '?')[:10]
+        print(f"Vize verisi yüklendi. (Güncelleme: {date_str})")
     except Exception as e:
         print(f"Vize verisi yüklenemedi: {e}")
 
@@ -113,7 +114,6 @@ def get_visa_status(country_name):
     if not country_name:
         return False, "bilinmiyor"
     
-    # Testte çıkan "United States" gibi isimleri doğrudan sözlükten çekiyoruz
     iso = COUNTRY_NAME_TO_ISO.get(country_name)
     if not iso:
         return False, f"bilinmiyor ({country_name})"
@@ -137,12 +137,21 @@ def get_usd_tl():
         r = requests.get("https://www.tcmb.gov.tr/kurlar/today.xml", timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             match = re.search(r'<Currency[^>]*CurrencyCode="USD"[^>]*>.*?<ForexSelling>([\d.]+)</ForexSelling>', r.text, re.DOTALL)
-            if match: return float(match.group(1))
+            if match: 
+                rate = float(match.group(1))
+                print(f"   TCMB Kuru: {rate}")
+                return rate
     except Exception: pass
+    
     try:
         r = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
-        if r.status_code == 200: return float(r.json().get("rates", {}).get("TRY", 50.0))
+        if r.status_code == 200:
+            rate = float(r.json().get("rates", {}).get("TRY", 50.0))
+            print(f"   Fallback Kur: {rate}")
+            return rate
     except Exception: pass
+    
+    print("   Kur çekilemedi, varsayılan 50.0 kullanılıyor.")
     return 50.0
 
 def _load_state(path):
@@ -184,15 +193,19 @@ def _search_leg(origin, dest, date_str):
         if not out.results: return None
         prices = [opt.price for opt in out.results if opt.price]
         return min(prices) if prices else None
-    except Exception:
+    except Exception as e:
+        print(f"    [Search Hata] {origin}->{dest}: {type(e).__name__}")
         time.sleep(5)
         try:
             out = swoop_search(origin, dest, date_str)
             prices = [opt.price for opt in out.results if opt.price]
             return min(prices) if prices else None
-        except Exception: return None
+        except Exception: 
+            print(f"    [Search Retry Hata] {origin}->{dest}")
+            return None
 
 def check_search():
+    print("--- Swoop Search Başladı ---")
     state = _load_state(SEARCH_STATE_FILE)
     first_run = not os.path.exists(SEARCH_STATE_FILE)
     alerts = 0
@@ -201,6 +214,8 @@ def check_search():
         name = route["name"]
         depart, ret_date = resolve_dates(route)
         state_key = f"{name}|{depart}|{ret_date}"
+        
+        print(f"  [{name}] kontrol ediliyor ({depart} → {ret_date})...")
 
         if idx > 0: time.sleep(REQUEST_DELAY)
 
@@ -208,9 +223,13 @@ def check_search():
         time.sleep(1)
         ret_min = _search_leg(route["destination"], route["origin"], str(ret_date))
 
-        if out_min is None or ret_min is None: continue
+        if out_min is None or ret_min is None: 
+            print(f"    Sonuç yok veya hata alındı.")
+            continue
 
         total_tl = out_min + ret_min
+        print(f"    Bulunan Fiyat: {total_tl:,.0f} TL")
+        
         prev = state.get(state_key, {})
         was_below = prev.get("below_threshold", False)
         below = total_tl <= route["max_price_tl"]
@@ -227,6 +246,7 @@ def check_search():
         state[state_key] = {"last_tl": total_tl, "below_threshold": below}
 
     _save_state(SEARCH_STATE_FILE, state)
+    print(f"--- Swoop Search Bitti ({alerts} bildirim) ---")
     return alerts
 
 # ============================================================
@@ -267,17 +287,26 @@ def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
     return msg
 
 def check_deals():
+    print("--- Swoop Deals Başladı ---")
     try:
+        print("  Google Flights'tan fırsatlar çekiliyor...")
         result = deals("IST", transport=TransportConfig(country="TR"))
-        if not result.deals: return 0
+        
+        if not result.deals: 
+            print("  Hiç deal bulunamadı.")
+            return 0
 
+        print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...")
         diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
+        
+        print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}")
         alerts = 0
 
         for d in diff.new:
             ok, label = _deal_passes_filters(d)
             if ok and alerts < MAX_NOTIFY:
                 send_telegram(_format_deal_msg(d, label))
+                print(f"    ✅ Bildirim gönderildi: {d.destination_city} ({label})")
                 alerts += 1
 
         for pc in diff.price_changes:
@@ -288,11 +317,13 @@ def check_deals():
                 old_p = getattr(pc, "old_price", None)
                 extra = f"📉 Önceki: {_price_display(old_p, d.currency)}" if old_p and old_p > d.price else ""
                 send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
+                print(f"    📉 Fiyat düşüşü bildirildi: {d.destination_city}")
                 alerts += 1
 
+        print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---")
         return alerts
     except Exception as e:
-        print(f"Deals hata: {e}")
+        print(f"--- Swoop Deals HATA: {e} ---")
         return 0
 
 # ============================================================
@@ -300,13 +331,27 @@ def check_deals():
 # ============================================================
 def main():
     global USD_TO_TL
-    print(f"=== Swoop Monitor ===")
+    print(f"=== Swoop Monitor Başladı ===")
+    
+    print("1. Vize verisi yükleniyor...")
     load_visa_data()
+    
+    print("2. Döviz kuru çekiliyor...")
     USD_TO_TL = get_usd_tl()
+    
     set_country("TR")
+    print("3. Ülke ayarlandı: TR (Fiyatlar TL cinsinden)")
+
+    print("\n4. Arama (Search) başlıyor...")
     check_search()
+    
+    print("\n5. Bekleme süresi (Rate limit koruması)...")
     time.sleep(2)
+    
+    print("\n6. Fırsatlar (Deals) başlıyor...")
     check_deals()
+    
+    print("\n=== Swoop Monitor Tamamlandı ===")
 
 if __name__ == "__main__":
     main()
