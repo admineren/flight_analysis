@@ -9,6 +9,7 @@ permissions:
 jobs:
   bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # 5 dakikada bitmezse zorla kapat
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,8 +24,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
           TB_READ_TOKEN: ${{ secrets.TB_READ_TOKEN }}
-        run: python telegram_bot.py
+          PYTHONUNBUFFERED: 1
+        run: python -u telegram_bot.py
       - name: Persist state
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
