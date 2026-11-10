@@ -1,38 +1,87 @@
-import time
-from viajante import get_flights
+import inspect
+from enum import Enum
+import viajante
 
-def search_flight_safe(route, fetch="sweep", top=5, max_retries=3, **params):
-    """
-    viajante get_flights için güvenli arama fonksiyonu.
-    BLOCKED hatası durumunda retry_after_seconds kadar bekleyip tekrar dener.
-    """
-    for attempt in range(max_retries):
-        try:
-            report = get_flights(route, fetch=fetch, top=top, **params)
-            
-            for query in report.queries:
-                if query.status == "ok":
-                    return report, query  # Başarılı, teklifleri döndür
-                
-                # Hata durumu
-                error = getattr(query, 'error', None)
-                if error:
-                    error_code = str(getattr(error, 'code', '')).upper()
-                    if 'BLOCKED' in error_code or 'RATE_LIMITED' in error_code:
-                        wait = getattr(query, 'retry_after_seconds', 15) or 15
-                        print(f"  ⚠️ Google engeli (deneme {attempt+1}/{max_retries}). {wait}sn bekleniyor...")
-                        time.sleep(wait)
-                        break  # Dış döngüde tekrar dene
-                    else:
-                        print(f"  ❌ Farklı hata: {error_code} - {getattr(error, 'message', '')}")
-                        return report, query
-            else:
-                # QueryFailure ama error objesi yok
-                print(f"  ❌ Sorgu hatası: {query.status}")
-                return report, query
-                
-        except Exception as e:
-            print(f"  ❌ Beklenmeyen hata: {type(e).__name__}: {e}")
-            time.sleep(5)
+def discover_module(module_name, module):
+    print("=" * 80)
+    print(f"MODÜL: {module_name}")
+    print("=" * 80)
     
-    return None, None  # Tüm denemeler tükendi
+    if module.__doc__:
+        print(f"Açıklama: {module.__doc__.strip()[:300]}\n")
+    
+    members = inspect.getmembers(module)
+    
+    functions = []
+    classes = []
+    enums = []
+    
+    for name, obj in members:
+        if name.startswith("_") or inspect.ismodule(obj):
+            continue
+        if inspect.isfunction(obj):
+            functions.append((name, obj))
+        elif inspect.isclass(obj):
+            if issubclass(obj, Enum):
+                enums.append((name, obj))
+            else:
+                classes.append((name, obj))
+
+    # 1. FONKSİYONLAR
+    if functions:
+        print(f"\n--- FONKSİYONLAR ({len(functions)}) ---")
+        for name, func in functions:
+            try:
+                sig = inspect.signature(func)
+                print(f"\n✅ {name}{sig}")
+            except Exception:
+                print(f"\n✅ {name}()")
+            
+            doc = inspect.getdoc(func)
+            if doc:
+                print(f"   {doc[:400]}")
+
+    # 2. SINIFLAR
+    if classes:
+        print(f"\n--- SINIFLAR ({len(classes)}) ---")
+        for name, cls in classes:
+            print(f"\n✅ {name}")
+            try:
+                sig = inspect.signature(cls.__init__)
+                print(f"   __init__{sig}")
+            except Exception:
+                pass
+            
+            doc = inspect.getdoc(cls)
+            if doc:
+                print(f"   {doc[:200]}")
+            
+            # Dataclass alanları
+            if hasattr(cls, "__dataclass_fields__"):
+                print("   Alanlar:")
+                for fname, fobj in cls.__dataclass_fields__.items():
+                    print(f"     - {fname}: {fobj.type}")
+
+    # 3. ENUM'LAR
+    if enums:
+        print(f"\n--- ENUM'LAR ({len(enums)}) ---")
+        for name, enum_cls in enums:
+            print(f"\n✅ {name}:")
+            for member in enum_cls:
+                print(f"     - {member.name} = '{member.value}'")
+
+print("VIAJANTE PAKETİ KEŞFİ BAŞLIYOR...\n")
+
+# Ana modül
+discover_module("viajante", viajante)
+
+# Alt modüller (varsa)
+for sub in ["models_flights", "control", "history", "querying", "scrape", "errors"]:
+    try:
+        mod = __import__(f"viajante.{sub}", fromlist=[sub])
+        print("\n\n")
+        discover_module(f"viajante.{sub}", mod)
+    except ImportError:
+        print(f"\n(viajante.{sub} modülü bulunamadı veya import edilemedi)")
+
+print("\n\nKEŞİF TAMAMLANDI.")
