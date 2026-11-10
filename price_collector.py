@@ -2,8 +2,12 @@ import os
 import json
 import requests
 import time
+import sys
 from datetime import datetime, timezone, date
 from viajante import get_flights, RoundTrip
+
+print("🚀 BETİK ÇALIŞMAYA BAŞLADI...", flush=True)
+sys.stdout.flush()
 
 TB_HOST = os.environ.get("TINYBIRD_HOST", "https://api.tinybird.co")
 TB_INGEST_TOKEN = os.environ["TB_INGEST_TOKEN"]
