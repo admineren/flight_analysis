@@ -1,12 +1,18 @@
 import os
 import json
+import time
 from datetime import datetime, timedelta, timezone
 from curl_cffi import requests as curl_requests
 
 WATCH_FILE = "turna_watch.json"
 STATE_FILE = "turna_state.json"
-
 API_URL = "https://www.turna.com/api/proxy/v1/analytics/cheapest/flights_to"
+
+TOKEN = os.environ["TELEGRAM_TOKEN"]
+CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+
+COOLDOWN_HOURS = 24    # Aynı rotaya 24 saat boyunca tekrar bildirim yok
+PRICE_DROP_PCT = 5     # 24 saat sonra fiyat %5 düşerse tekrar bildir
 
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -14,17 +20,8 @@ HEADERS = {
     "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
     "Origin": "https://www.turna.com",
     "Referer": "https://www.turna.com/",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 }
-
-TOKEN = os.environ["TELEGRAM_TOKEN"]
-CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-
-MAX_NOTIFY = 5
-MAX_SUSPICIOUS_NOTIFY = 2
-
 
 def load_state():
     if not os.path.exists(STATE_FILE):
@@ -32,13 +29,10 @@ def load_state():
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             content = f.read().strip()
-        if not content:
-            return {}
+        if not content: return {}
         return json.loads(content)
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"State okunamadı: {e}")
+    except (json.JSONDecodeError, OSError):
         return {}
-
 
 def save_state(state):
     tmp = STATE_FILE + ".tmp"
@@ -46,41 +40,22 @@ def save_state(state):
         json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
     os.replace(tmp, STATE_FILE)
 
-
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
-        r = curl_requests.post(url, json={
-            "chat_id": CHAT_ID,
-            "text": text,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True,
-        }, timeout=15)
-        if r.status_code != 200:
-            print("Telegram error:", r.status_code, r.text)
+        curl_requests.post(url, json={"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=15)
     except Exception as e:
         print("Telegram exception:", e)
-
-
-def build_url(route, dep, ret):
-    origin_slug = route.get("origin_slug", route["origin"].lower())
-    dest_slug = route.get("destination_slug", route["destination"].lower())
-    combined = f"{origin_slug}-{dest_slug}"
-    return (
-        f"https://www.turna.com/ucak-bileti/gidis-donus/"
-        f"{combined}/{dep}/{ret}?adult=1"
-    )
-
 
 def search_route(route):
     today = datetime.now(timezone.utc).date()
     start = today + timedelta(days=2)
-    end = today + timedelta(days=route.get("lookahead_days", 120))
-
+    end = today + timedelta(days=120)
+    
     body = {
         "Origins": [{"Code": route["origin"]}],
         "Destination": {"Code": route["destination"]},
-        "MaxNumberOfResults": route.get("max_results", 200),
+        "MaxNumberOfResults": 200,
         "TripType": "RT",
         "StartDate": start.strftime("%Y-%m-%d"),
         "EndDate": end.strftime("%Y-%m-%d"),
@@ -88,31 +63,20 @@ def search_route(route):
         "Currency": "TRY",
         "Language": "TR",
         "CallerId": "saka",
-        "RoundTripOptions": {
-            "MinStay": route.get("min_stay", 3),
-            "MaxStay": route.get("max_stay", 21),
-        },
+        "RoundTripOptions": {"MinStay": 3, "MaxStay": 21},
     }
-
+    
     try:
-        resp = curl_requests.post(API_URL, headers=HEADERS, json=body,
-                                  impersonate="chrome", timeout=90)
-        if resp.status_code != 200:
-            print(f"[{route['name']}] HTTP {resp.status_code}")
-            return None
+        resp = curl_requests.post(API_URL, headers=HEADERS, json=body, impersonate="chrome", timeout=90)
+        if resp.status_code != 200: return None
         return resp.json()
-    except Exception as e:
-        print(f"[{route['name']}] fetch hata: {e}")
+    except Exception:
         return None
 
-
-def process_route(route, data):
-    flights = data if isinstance(data, list) else (
-        data.get("Flights") or data.get("Results") or data.get("Data") or []
-    )
-    if not flights:
-        return [], [], 0
-
+def find_best_deal(route, data):
+    flights = data if isinstance(data, list) else (data.get("Flights") or data.get("Results") or data.get("Data") or [])
+    if not flights: return None
+    
     by_pair = {}
     for f in flights:
         dep = f.get("OutboundDepartureDate", "")[:10]
@@ -120,143 +84,108 @@ def process_route(route, data):
         key = (dep, ret)
         if key not in by_pair or f["AdultNetFare"] < by_pair[key]["AdultNetFare"]:
             by_pair[key] = f
-
-    prices = sorted(f["AdultNetFare"] for f in by_pair.values())
-    if not prices:
-        return [], [], 0
-
-    median = prices[len(prices) // 2]
-    suspicious_threshold = median * 0.30
-
+    
     max_price = route.get("max_price", float("inf"))
     max_stops = route.get("max_stops", 99)
-    min_seats = route.get("min_seats", 1)
-
-    normal, suspicious = [], []
-
+    
+    filtered = []
     for (dep, ret), f in by_pair.items():
-        price = f["AdultNetFare"]
-        if price > max_price:
-            continue
-        if f.get("NumStops", 0) > max_stops:
-            continue
-        if f.get("AvailableSeats", 0) < min_seats:
-            continue
+        if f["AdultNetFare"] > max_price: continue
+        if f.get("NumStops", 0) > max_stops: continue
+        filtered.append((dep, ret, f))
+    
+    if not filtered: return None
+    filtered.sort(key=lambda x: x[2]["AdultNetFare"])
+    return filtered[0] # En ucuz olanı döndür
 
-        if price < suspicious_threshold:
-            suspicious.append((dep, ret, f))
-        else:
-            normal.append((dep, ret, f))
-
-    normal.sort(key=lambda x: x[2]["AdultNetFare"])
-    suspicious.sort(key=lambda x: x[2]["AdultNetFare"])
-
-    return normal, suspicious, median
-
-
-def deal_id(dep, ret, flight):
+def format_notification(route, dep, ret, flight):
     airline = flight.get("Airline", {}).get("AirlineName", "?")
-    return f"{dep}|{ret}|{airline}|{flight['AdultNetFare']:.0f}"
-
-
-def format_normal(route, dep, ret, f):
-    airline = f.get("Airline", {}).get("AirlineName", "?")
-    price = f["AdultNetFare"]
-    stops = f.get("NumStops", 0)
-    dur_h, dur_m = divmod(int(f.get("DurationInMinutes", 0)), 60)
-    seats = f.get("AvailableSeats", "?")
-    url = build_url(route, dep, ret)
-
+    price = flight["AdultNetFare"]
+    stops = flight.get("NumStops", 0)
+    dur_min = flight.get("DurationInMinutes", 0)
+    dur_h, dur_m = divmod(int(dur_min), 60)
+    seats = flight.get("AvailableSeats", "?")
+    
     return (
-        f"✈️ <b>{route['name']}</b>\n"
+        f"✈️ <b>[Turna] {route['name']}</b>\n"
         f"📅 {dep} → {ret}\n"
-        f"💰 ~<b>{price:,.0f} TL</b> (eşik: {route.get('max_price', 0):,.0f})\n"
+        f"💰 <b>{price:,.0f} TL</b> (eşik: {route['max_price']:,})\n"
         f"🛫 {airline} | {stops} aktarma | {dur_h}s {dur_m:02d}dk | 💺 {seats}\n"
-        f"⚠️ <i>API tahmini — Turna.com'da +1-3K fark olabilir, doğrula</i>\n"
-        f"🔗 {url}"
+        f"🔗 https://www.turna.com/ucak-bileti/gidis-donus/"
+        f"{route.get('origin_slug', 'istanbul-ist-havalimani')}-"
+        f"{route.get('destination_slug', route['destination'].lower())}/"
+        f"{dep}/{ret}?adult=1"
     )
-
-
-def format_suspicious(route, dep, ret, f, median):
-    airline = f.get("Airline", {}).get("AirlineName", "?")
-    price = f["AdultNetFare"]
-    url = build_url(route, dep, ret)
-
-    return (
-        f"⚠️ <b>ŞÜPHELİ — {route['name']}</b>\n"
-        f"📅 {dep} → {ret}\n"
-        f"🛫 {airline}\n"
-        f"💰 API: {price:,.0f} TL | rotadaki medyan: {median:,.0f} TL\n"
-        f"<i>Bu fiyat normalin çok altında. API glitch'i VEYA gerçek error fare olabilir. MUTLAKA manuel kontrol et.</i>\n"
-        f"🔗 {url}"
-    )
-
 
 def main():
-    first_run = not os.path.exists(STATE_FILE)
-    state = load_state()
-
     with open(WATCH_FILE, "r", encoding="utf-8") as f:
         watch = json.load(f)
-
-    total_new = 0
-    total_suspicious = 0
-
+    
+    state = load_state()
+    first_run = not os.path.exists(STATE_FILE)
+    now = datetime.now(timezone.utc)
+    alerts = 0
+    
+    print(f"--- Turna Monitor ---")
+    
     for route in watch["routes"]:
         name = route["name"]
-        print(f"\n[{name}] taranıyor...")
-
+        print(f"  [{name}] kontrol ediliyor...")
+        
         data = search_route(route)
         if not data:
+            print(f"    sonuç yok")
             continue
-
-        normal, suspicious, median = process_route(route, data)
-        print(f"  normal: {len(normal)} | şüpheli: {len(suspicious)} | medyan: {median:,.0f}")
-
+        
+        best = find_best_deal(route, data)
+        if not best:
+            print(f"    eşik altında deal yok")
+            state.setdefault(name, {})["last_checked"] = now.isoformat()
+            continue
+        
+        dep, ret, flight = best
+        best_price = flight["AdultNetFare"]
+        
+        print(f"    en iyi: {dep}→{ret} {best_price:,.0f} TL")
+        
+        prev = state.get(name, {})
+        prev_notified_at = prev.get("last_notified_at")
+        last_notified_price = prev.get("last_notified_price")
+        
         if first_run:
-            ids = {deal_id(dep, ret, f) for dep, ret, f in normal}
-            state[name] = sorted(ids)
-            print(f"  ilk kayıt: {len(ids)} fırsat")
-            if suspicious:
-                print(f"  ilk çalıştırmada {len(suspicious)} şüpheli (bildirim yok)")
+            state[name] = {"last_checked": now.isoformat(), "last_price": best_price}
+            print(f"    ilk kayıt (sessiz)")
             continue
-
-        route_seen = set(state.get(name, []))
-
-        if suspicious:
-            print(f"  ⚠️ {len(suspicious)} şüpheli:")
-            for dep, ret, f in suspicious[:MAX_SUSPICIOUS_NOTIFY]:
-                airline = f.get("Airline", {}).get("AirlineName", "?")
-                print(f"    {dep}→{ret} {airline} {f['AdultNetFare']:,.0f} TL")
-                send_telegram(format_suspicious(route, dep, ret, f, median))
-            total_suspicious += len(suspicious)
-
-        new_normal = [(dep, ret, f) for dep, ret, f in normal
-                      if deal_id(dep, ret, f) not in route_seen]
-
-        if new_normal:
-            print(f"  {len(new_normal)} YENİ normal fırsat:")
-            for dep, ret, f in new_normal[:MAX_NOTIFY]:
-                airline = f.get("Airline", {}).get("AirlineName", "?")
-                print(f"    {dep}→{ret} {airline} {f['AdultNetFare']:,.0f} TL")
-                send_telegram(format_normal(route, dep, ret, f))
-
-            if len(new_normal) > MAX_NOTIFY:
-                send_telegram(
-                    f"ℹ️ <b>{name}</b>: {len(new_normal)} yeni fırsat, "
-                    f"ilk {MAX_NOTIFY} gösterildi."
-                )
-
-            total_new += len(new_normal)
-            for dep, ret, f in new_normal:
-                route_seen.add(deal_id(dep, ret, f))
-            state[name] = sorted(route_seen)
-        elif not suspicious:
-            print("  yeni fırsat yok.")
-
+        
+        # Cooldown kontrolü
+        cooldown_ok = True
+        if prev_notified_at:
+            last_dt = datetime.fromisoformat(prev_notified_at.replace("Z", "+00:00"))
+            hours_since = (now - last_dt).total_seconds() / 3600
+            cooldown_ok = hours_since >= COOLDOWN_HOURS
+        
+        should_notify = False
+        reason = ""
+        
+        if last_notified_price is None:
+            should_notify = cooldown_ok
+            reason = "ilk fırsat"
+        elif best_price < last_notified_price * (1 - PRICE_DROP_PCT / 100):
+            should_notify = cooldown_ok
+            reason = f"fiyat düştü ({last_notified_price:,.0f} → {best_price:,.0f})"
+        
+        if should_notify:
+            send_telegram(format_notification(route, dep, ret, flight))
+            print(f"    🎯 BİLDİRİM: {reason}")
+            alerts += 1
+            state[name] = {"last_checked": now.isoformat(), "last_price": best_price, "last_notified_price": best_price, "last_notified_at": now.isoformat()}
+        else:
+            if not cooldown_ok: print(f"    ⏸️ cooldown (24 saat dolmadı)")
+            else: print(f"    sessiz (fiyat düşmedi)")
+            state[name] = {"last_checked": now.isoformat(), "last_price": best_price, "last_notified_price": last_notified_price, "last_notified_at": prev_notified_at}
+    
     save_state(state)
-    print(f"\n=== Toplam: {total_new} normal, {total_suspicious} şüpheli ===")
-
+    print(f"--- Toplam: {alerts} bildirim ---")
 
 if __name__ == "__main__":
     main()
