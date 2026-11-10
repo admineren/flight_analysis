@@ -23,7 +23,7 @@ CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 TB_HOST = os.environ.get("TINYBIRD_HOST", "https://api.tinybird.co")
 TB_READ_TOKEN = os.environ.get("TB_READ_TOKEN")
 
-STATE_FILE = "telegram_state.json"
+STATE_FILE = os.path.join("data", "telegram_state.json")
 
 # ============================================================
 # STATE
