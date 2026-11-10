@@ -1,0 +1,76 @@
+{
+  "routes": [
+    {
+      "name": "IST → Bangkok",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "BKK",
+      "destination_slug": "bangkok-suvarnabhumi-intl-havalimani",
+      "max_price": 30000,
+      "max_stops": 3
+    },
+    {
+      "name": "IST → Hanoi",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "HAN",
+      "destination_slug": "hanoi-noi-bai-intl-havalimani",
+      "max_price": 31000,
+      "max_stops": 3
+    },
+    {
+      "name": "IST → Ho Chi Minh",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "SGN",
+      "destination_slug": "ho-chi-minh-tan-son-nhat-intl-havalimani",
+      "max_price": 31000,
+      "max_stops": 3
+    },
+    {
+      "name": "IST → Kuala Lumpur",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "KUL",
+      "destination_slug": "kuala-lumpur-kuala-lumpur-intl-havalimani",
+      "max_price": 27000,
+      "max_stops": 2
+    },
+    {
+      "name": "IST → Şanghay",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "PVG",
+      "destination_slug": "shanghai-pudong-intl-havalimani",
+      "max_price": 28000,
+      "max_stops": 3
+    },
+    {
+      "name": "IST → Tokyo (Haneda)",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "HND",
+      "destination_slug": "tokyo-haneda-havalimani",
+      "max_price": 35000,
+      "max_stops": 2
+    },
+    {
+      "name": "IST → Tokyo (Narita)",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "NRT",
+      "destination_slug": "tokyo-narita-havalimani",
+      "max_price": 36000,
+      "max_stops": 2
+    },
+    {
+      "name": "IST → Manila",
+      "origin": "IST",
+      "origin_slug": "istanbul-ist-havalimani",
+      "destination": "MNL",
+      "destination_slug": "manila-ninoy-aquino-intl-havalimani",
+      "max_price": 30000,
+      "max_stops": 3
+    }
+  ]
+}
