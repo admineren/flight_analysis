@@ -14,11 +14,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"            # ← EKLENDİ: pip cache
-      - run: pip install viajante requests
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Run Bot
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -27,6 +31,7 @@ jobs:
           TB_READ_TOKEN: ${{ secrets.TB_READ_TOKEN }}
           PYTHONUNBUFFERED: 1
         run: python -u telegram_bot.py
+
       - name: Persist state
         if: always()
         run: |
