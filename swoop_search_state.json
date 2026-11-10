@@ -3,8 +3,28 @@
     "below_threshold": false,
     "last_tl": 21282
   },
+  "IST → Baku|2027-01-09|2027-01-16": {
+    "below_threshold": false,
+    "last_tl": 21285
+  },
+  "IST → Belgrad|2027-01-09|2027-01-16": {
+    "below_threshold": false,
+    "last_tl": 14313
+  },
+  "IST → Minsk|2027-01-09|2027-01-16": {
+    "below_threshold": false,
+    "last_tl": 36127
+  },
+  "IST → Saraybosna|2027-01-09|2027-01-16": {
+    "below_threshold": false,
+    "last_tl": 9738
+  },
   "IST → Tbilisi|2027-01-09|2027-01-14": {
     "below_threshold": false,
     "last_tl": 11764
+  },
+  "IST → Tbilisi|2027-01-09|2027-01-16": {
+    "below_threshold": false,
+    "last_tl": 11768
   }
 }
