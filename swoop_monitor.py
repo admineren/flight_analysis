@@ -3,7 +3,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-from swoop import search as swoop_search, deals, watch_deals
+from swoop import search as swoop_search, deals, watch_deals, set_country
 
 SEARCH_STATE_FILE = "swoop_search_state.json"
 DEALS_STATE_FILE = "swoop_deals_state.json"
@@ -11,20 +11,21 @@ DEALS_STATE_FILE = "swoop_deals_state.json"
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-USD_TO_TL = 50.0
+# NOT: set_country("TR") her çalıştırmada çağrılır → tüm fiyatlar TL cinsinden gelir
+# USD_TO_TL sabiti artık gereksiz
 
-# --- Sadece vizesiz rotalar (Turna'da olmayanlar) ---
+# --- Sadece vizesiz rotalar ---
 GOOGLE_FLIGHTS_WATCH = [
     {"name": "IST → Tbilisi", "origin": "IST", "destination": "TBS",
-     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 7000},
+     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 11000},
     {"name": "IST → Baku", "origin": "IST", "destination": "GYD",
-     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 8000},
+     "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 17000},
 ]
 
 # --- Deals filtre kuralları ---
 DEALS_MIN_DISCOUNT_PCT = 40          # %40+ → her bölgeden bildir
 DEALS_ASIA_MIN_DISCOUNT_PCT = 25     # Asya %25+ → bildir
-DEALS_MAX_PRICE_USD = 800            # $800 üstü deal'leri ele
+DEALS_MAX_PRICE_TL = 40000           # 40.000 TL üstü deal'leri ele (≈$800)
 
 MAX_NOTIFY = 5
 REQUEST_DELAY = 3
@@ -33,7 +34,6 @@ REQUEST_DELAY = 3
 # ============================================================
 # VİZE FİLTRESİ
 # ============================================================
-# Türk vatandaşı için vizesiz / e-vize kolay ülkeler
 VISA_FREE_COUNTRIES = {
     # Avrupa
     "Georgia", "Azerbaijan", "Serbia", "Bosnia and Herzegovina",
@@ -54,7 +54,6 @@ VISA_FREE_COUNTRIES = {
     "Türkiye", "Turkey", "Cyprus",
 }
 
-# Türk vatandaşı için vize gerektiren ülkeler (açık exclude)
 VISA_REQUIRED_COUNTRIES = {
     # Schengen
     "Germany", "France", "Netherlands", "Greece", "Italy", "Spain",
@@ -70,7 +69,6 @@ VISA_REQUIRED_COUNTRIES = {
 
 
 def is_visa_free(country_name):
-    """Ülke adı vizesiz mi? (Türk vatandaşı için)"""
     if not country_name:
         return False
     if country_name in VISA_REQUIRED_COUNTRIES:
@@ -117,7 +115,7 @@ def send_telegram(text):
 
 
 # ============================================================
-# SEARCH KATMANI (2 vizesiz rota)
+# SEARCH KATMANI (TL cinsinden)
 # ============================================================
 def resolve_dates(route):
     today = datetime.now(timezone.utc).date()
@@ -156,7 +154,7 @@ def check_search():
     first_run = not os.path.exists(SEARCH_STATE_FILE)
     today = datetime.now(timezone.utc).date()
 
-    print("\n--- Swoop Search (2 vizesiz rota) ---")
+    print("\n--- Swoop Search (2 vizesiz rota, TL) ---")
     alerts = 0
 
     for idx, route in enumerate(GOOGLE_FLIGHTS_WATCH):
@@ -175,8 +173,7 @@ def check_search():
             print(f"  [{name}] {depart}→{ret_date}: başarısız")
             continue
 
-        total_usd = out_min + ret_min
-        total_tl = total_usd * USD_TO_TL
+        total_tl = out_min + ret_min  # Direkt TL (set_country="TR" sayesinde)
 
         prev = state.get(state_key, {})
         prev_tl = prev.get("last_tl")
@@ -190,7 +187,7 @@ def check_search():
                 trend = f" (↓ %{pct:.0f})"
 
         print(f"  [{name}] {depart}→{ret_date} | "
-              f"${total_usd} = {total_tl:,.0f} TL | eşik {route['max_price_tl']:,} | "
+              f"{total_tl:,.0f} TL | eşik {route['max_price_tl']:,} | "
               f"altında: {below}{trend}")
 
         if first_run:
@@ -199,15 +196,15 @@ def check_search():
             send_telegram(
                 f"✈️ <b>[Swoop Search] {name}</b>\n"
                 f"📅 {depart} → {ret_date}\n"
-                f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}\n"
-                f"⚠️ <i>USD tahmini, doğrula</i>"
+                f"💰 <b>{total_tl:,.0f} TL</b>{trend}\n"
+                f"⚠️ <i>Google TR fiyatı, doğrula</i>"
             )
             alerts += 1
         elif below and was_below and trend:
             send_telegram(
                 f"📉 <b>[Swoop Search] {name}</b> daha da düştü\n"
                 f"📅 {depart} → {ret_date}\n"
-                f"💰 ~<b>{total_tl:,.0f} TL</b>{trend}"
+                f"💰 <b>{total_tl:,.0f} TL</b>{trend}"
             )
             alerts += 1
 
@@ -230,10 +227,9 @@ def check_search():
 
 
 # ============================================================
-# DEALS KATMANI (vize filtresi + price_changes)
+# DEALS KATMANI (TL cinsinden + vize filtresi)
 # ============================================================
 def _deal_passes_filters(d):
-    """Deal vize + indirim + fiyat filtrelerinden geçiyor mu?"""
     if not d.destination_region:
         return False, "bölge yok"
     if not is_visa_free(d.destination_country):
@@ -245,20 +241,24 @@ def _deal_passes_filters(d):
     is_high_discount = discount >= DEALS_MIN_DISCOUNT_PCT
     is_asia_deal = is_asia and discount >= DEALS_ASIA_MIN_DISCOUNT_PCT
 
-    if d.price > DEALS_MAX_PRICE_USD:
-        return False, f"fiyat yüksek (${d.price})"
+    if d.price > DEALS_MAX_PRICE_TL:
+        return False, f"fiyat yüksek ({d.price:,} TL)"
     if not (is_high_discount or is_asia_deal):
         return False, f"indirim düşük (%{discount})"
 
     return True, region
 
 
-def _format_deal_msg(d, region, prefix_emoji="🎯", prefix_text="YENİ DEAL", extra_info=""):
+def _format_deal_msg(d, region, prefix_emoji="🎯", extra_info=""):
     airlines = ", ".join(d.airline_names[:2]) if d.airline_names else "?"
+    currency = getattr(d, "currency", "TRY") or "TRY"
+    symbol = "₺" if currency == "TRY" else "$"
+
     msg = (
         f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}</b> ({region})\n"
         f"📅 {d.departure_date} → {d.return_date}\n"
-        f"💰 <b>${d.price}</b> (normal ${d.typical_price}, <b>%{d.discount_pct}</b>)\n"
+        f"💰 <b>{symbol}{d.price:,}</b> "
+        f"(normal {symbol}{d.typical_price or 0:,}, <b>%{d.discount_pct or 0}</b>)\n"
         f"🛫 {airlines}"
     )
     if d.stops is not None:
@@ -271,7 +271,7 @@ def _format_deal_msg(d, region, prefix_emoji="🎯", prefix_text="YENİ DEAL", e
 
 
 def check_deals():
-    print("\n--- Swoop Deals (vize filtresi) ---")
+    print("\n--- Swoop Deals (vize filtresi, TL) ---")
 
     try:
         result = deals("IST")
@@ -280,6 +280,11 @@ def check_deals():
             return 0
 
         print(f"  {len(result.deals)} deal alındı")
+
+        # İlk deal'in para birimini logla (set_country çalışıyor mu?)
+        first_currency = getattr(result.deals[0], "currency", "?")
+        first_price = result.deals[0].price
+        print(f"  Örnek: {result.deals[0].destination_city} — {first_price} {first_currency}")
 
         diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
         print(f"  new: {len(diff.new)} | gone: {len(diff.gone)} | "
@@ -302,12 +307,11 @@ def check_deals():
             msg = _format_deal_msg(d, info)
             send_telegram(msg)
             print(f"    🎯 {d.destination_city} ({d.destination_country}) "
-                  f"${d.price} (%{d.discount_pct})")
+                  f"{d.price:,} TL (%{d.discount_pct})")
             alerts += 1
 
         # --- FİYAT DEĞİŞİMLERİ ---
         for pc in diff.price_changes:
-            # PriceChange objesinden Deal'i çıkar (swoop API'ye göre)
             d = getattr(pc, "deal", None) or getattr(pc, "current", None)
             if not d:
                 continue
@@ -327,13 +331,12 @@ def check_deals():
             extra = ""
             if old_price and new_price and old_price > new_price:
                 pct = (old_price - new_price) / old_price * 100
-                extra = f"📉 Önceki: ${old_price} → ${new_price} (%{pct:.0f} düşüş)"
+                extra = f"📉 Önceki: {old_price:,} → {new_price:,} TL (%{pct:.0f} düşüş)"
 
-            msg = _format_deal_msg(d, info, prefix_emoji="📉",
-                                   prefix_text="FİYAT DÜŞTÜ", extra_info=extra)
+            msg = _format_deal_msg(d, info, prefix_emoji="📉", extra_info=extra)
             send_telegram(msg)
             print(f"    📉 {d.destination_city} ({d.destination_country}) "
-                  f"${d.price} (fiyat değişimi)")
+                  f"{d.price:,} TL (fiyat değişimi)")
             alerts += 1
 
         print(f"  Deals: {alerts} bildirim, {skipped_visa} vize nedeniyle atlandı")
@@ -351,6 +354,10 @@ def main():
     print("=" * 60)
     print(f"Swoop Monitor — {datetime.now(timezone.utc).isoformat()}")
     print("=" * 60)
+
+    # Türkiye lokasyonu — tüm fiyatlar TL cinsinden gelir
+    set_country("TR")
+    print("Ülke: TR (fiyatlar TL cinsinden)")
 
     search_alerts = check_search()
     time.sleep(2)
