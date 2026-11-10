@@ -1,0 +1,10 @@
+{
+  "IST": "TR", "SAW": "TR", "BKK": "TH", "DPS": "ID", "KUL": "MY", "SIN": "SG",
+  "HKG": "HK", "HAN": "VN", "SGN": "VN", "MNL": "PH", "TBS": "GE", "GYD": "AZ",
+  "BEG": "RS", "SJJ": "BA", "MSQ": "BY", "DXB": "AE", "AUH": "AE", "SHJ": "AE",
+  "DOH": "QA", "RUH": "SA", "AMM": "JO", "BEY": "LB", "CAI": "EG", "SSH": "EG",
+  "CMN": "MA", "TNG": "MA", "LHR": "GB", "CDG": "FR", "FRA": "DE", "AMS": "NL",
+  "FCO": "IT", "MAD": "ES", "BCN": "ES", "ATH": "GR", "BSL": "CH", "ZRH": "CH",
+  "JFK": "US", "LAX": "US", "NRT": "JP", "HND": "JP", "ICN": "KR", "PEK": "CN",
+  "PVG": "CN", "TPE": "TW", "DEL": "IN"
+}
