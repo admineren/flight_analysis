@@ -288,43 +288,56 @@ def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
 
 def check_deals():
     print("--- Swoop Deals Başladı ---")
-    try:
-        print("  Google Flights'tan fırsatlar çekiliyor...")
-        result = deals("IST", transport=TransportConfig(country="TR"))
-        
-        if not result.deals: 
-            print("  Hiç deal bulunamadı.")
-            return 0
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"  Google Flights'tan fırsatlar çekiliyor (Deneme {attempt+1}/{max_retries})...")
+            result = deals("IST", transport=TransportConfig(country="TR"))
+            
+            if not result.deals: 
+                print("  Hiç deal bulunamadı.")
+                return 0
 
-        print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...")
-        diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
-        
-        print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}")
-        alerts = 0
+            print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...")
+            diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
+            
+            print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}")
+            alerts = 0
 
-        for d in diff.new:
-            ok, label = _deal_passes_filters(d)
-            if ok and alerts < MAX_NOTIFY:
-                send_telegram(_format_deal_msg(d, label))
-                print(f"    ✅ Bildirim gönderildi: {d.destination_city} ({label})")
-                alerts += 1
+            for d in diff.new:
+                ok, label = _deal_passes_filters(d)
+                if ok and alerts < MAX_NOTIFY:
+                    send_telegram(_format_deal_msg(d, label))
+                    print(f"    ✅ Bildirim gönderildi: {d.destination_city} ({label})")
+                    alerts += 1
 
-        for pc in diff.price_changes:
-            d = getattr(pc, "deal", None) or getattr(pc, "current", None)
-            if not d: continue
-            ok, label = _deal_passes_filters(d)
-            if ok and alerts < MAX_NOTIFY:
-                old_p = getattr(pc, "old_price", None)
-                extra = f"📉 Önceki: {_price_display(old_p, d.currency)}" if old_p and old_p > d.price else ""
-                send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
-                print(f"    📉 Fiyat düşüşü bildirildi: {d.destination_city}")
-                alerts += 1
+            for pc in diff.price_changes:
+                d = getattr(pc, "deal", None) or getattr(pc, "current", None)
+                if not d: continue
+                ok, label = _deal_passes_filters(d)
+                if ok and alerts < MAX_NOTIFY:
+                    old_p = getattr(pc, "old_price", None)
+                    extra = f"📉 Önceki: {_price_display(old_p, d.currency)}" if old_p and old_p > d.price else ""
+                    send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
+                    print(f"    📉 Fiyat düşüşü bildirildi: {d.destination_city}")
+                    alerts += 1
 
-        print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---")
-        return alerts
-    except Exception as e:
-        print(f"--- Swoop Deals HATA: {e} ---")
-        return 0
+            print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---")
+            return alerts # Başarılı olduysa döngüden çık
+            
+        except Exception as e:
+            err_msg = str(e)
+            if "gRPC status 13" in err_msg or "INTERNAL" in err_msg:
+                if attempt < max_retries - 1:
+                    print(f"  ⚠️ Google geçici hata verdi. 10 saniye beklenip tekrar denenecek...")
+                    time.sleep(10)
+                else:
+                    print(f"--- Swoop Deals HATA: Google rate limit aşıldı, bu çalıştırma atlanıyor. ---")
+                    return 0
+            else:
+                print(f"--- Swoop Deals HATA: {err_msg} ---")
+                return 0
 
 # ============================================================
 # MAIN
