@@ -65,24 +65,6 @@ def load_visa_data():
     except Exception as e:
         print(f"Vize verisi yüklenemedi: {e}")
 
-def get_visa_status(country_name):
-    if not country_name:
-        return False, "bilinmiyor"
-    
-    iso = COUNTRY_NAME_TO_ISO.get(country_name)
-    if not iso:
-        return False, f"bilinmiyor ({country_name})"
-    
-    if iso in VISA_MAP.get("green", set()):
-        return True, "Vizesiz (Yeşil)"
-    if iso in VISA_MAP.get("blue", set()):
-        return True, "Kapıda Vize / e-Vize (Mavi)"
-    if iso in VISA_MAP.get("yellow", set()):
-        return True, "eTA (Sarı)"
-    if iso in VISA_MAP.get("red", set()):
-        return False, "Vize Gerekli (Kırmızı)"
-    return False, "bilinmiyor"
-
 # ============================================================
 # YARDIMCI FONKSİYONLAR
 # ============================================================
@@ -208,11 +190,14 @@ def check_search():
 # DEALS KATMANI
 # ============================================================
 def _deal_passes_filters(d):
-    if not d.destination_region: return False, "bölge yok"
+    if not d.destination_region:
+        return False, "bölge yok"
     
-    is_ok, visa_label = get_visa_status(d.destination_country)
-    if not is_ok: return False, visa_label
-
+    visa_label = get_visa_by_country_name(d.destination_country)
+    
+    if "🟢" not in visa_label and "🔵" not in visa_label:
+        return False, f"vize engeli ({visa_label})"
+    
     discount = d.discount_pct or 0
     is_asia = "ASIA" in str(d.destination_region)
     
