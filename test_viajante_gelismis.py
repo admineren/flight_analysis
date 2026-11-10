@@ -2,7 +2,7 @@
 Viajante gelişmiş testler:
 1. RoundTrip desteği (get_flights vs search_flights)
 2. 3 aylık tarama (31 günlük dilimler)
-3. Fiyat geçmişi (price_history) özelliği
+3. Fiyat geçmişi (price_history) — viajante.history alt modülünde
 """
 import os
 import time
@@ -11,7 +11,8 @@ from datetime import date, timedelta
 # Fiyat geçmişini etkinleştir (testten önce)
 os.environ["VIAJANTE_PRICE_HISTORY"] = "1"
 
-from viajante import get_flights, search_flights, search_dates, RoundTrip, price_history
+from viajante import get_flights, search_flights, search_dates, RoundTrip
+from viajante.history import price_history   # ← DÜZELTİLDİ
 
 
 def test_roundtrip():
@@ -117,14 +118,15 @@ def test_price_history():
         try:
             get_flights("IST-BKK:2027-02-15", fetch="sweep", top=1, currency="TRY")
             print(f"    Arama {i+1} tamam")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"    Arama {i+1} hata: {str(e)[:80]}")
         time.sleep(5)
 
     # Geçmişi oku
     print("\n  Geçmiş okunuyor...")
     try:
         hist = price_history(kind="flight", route="IST-BKK", limit=5)
+        print(f"  Sonuç tipi: {type(hist)}")
         print(f"  Sonuç: {hist}")
     except Exception as e:
         print(f"  ❌ Hata: {type(e).__name__}: {str(e)[:150]}")
