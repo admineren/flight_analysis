@@ -244,98 +244,112 @@ def cmd_ara(args):
     if len(args) < 3: return "❌ Kullanım: <code>/ara IST BKK 2027-02-15</code>"
     origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
     
-    try:
-        from viajante import RoundTrip
-        trip = RoundTrip(
-            origin=origin, destination=dest,
-            departure_date=date.fromisoformat(dep),
-            return_date=date.fromisoformat(dep) + timedelta(days=7),
-            max_stops=1,
-        )
-        
-        report = get_flights(trip, fetch="sweep", top=10, currency="TRY", deadline_seconds=45)
-        q = report.queries[0] if report.queries else None
-        
-        if not q or q.status != "ok" or not q.offers:
-            err = getattr(q.error, "code", "unknown") if q and q.error else "no_query"
-            return f"⚠️ Canlı fiyat çekilemedi.\nKod: {err}"
-
-        level_emoji = "⚪"
-        level_text = "BİLİNMİYOR"
-        if q.price_insight:
-            level = q.price_insight.level
-            level_emoji = {"low": "🟢", "typical": "🟡", "high": "🔴"}.get(level, "⚪")
-            level_text = level.upper()
-
-        lines = [f"✈️ <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)\n📅 {dep}\n"]
-
-        seen_airlines = set()
-        display_count = 0
-
-        for o in q.offers:
-            if display_count >= 4:
-                break
-            if o.airline in seen_airlines:
-                continue
-            seen_airlines.add(o.airline)
-            display_count += 1
-
-            lines.append(f"<b>{display_count}. {o.airline}</b> — <b>{o.price_text}</b>")
-            lines.append(f"   🕐 {o.departure or '?'} → {o.arrival or '?'}")
+    MAX_ATTEMPTS = 3
+    WAIT_SECONDS = 20
+    
+    q = None
+    report = None
+    last_err = "unknown"
+    
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            from viajante import RoundTrip
+            trip = RoundTrip(
+                origin=origin, destination=dest,
+                departure_date=date.fromisoformat(dep),
+                return_date=date.fromisoformat(dep) + timedelta(days=7),
+                max_stops=1,
+            )
+            report = get_flights(trip, fetch="sweep", top=10, currency="TRY", deadline_seconds=45)
+            q = report.queries[0] if report.queries else None
             
-            details = flight_details(o)
-            if details:
-                flight_s = _fmt_duration(details["flight_mins"])
-                total_s = _fmt_duration(details["total_mins"])
-                
-                if details["flight_mins"] and details["total_mins"]:
-                    wait_total = details["total_mins"] - details["flight_mins"]
-                    if wait_total > 30:
-                        lines.append(f"   ⏱️ Uçuş: {flight_s} | Toplam: {total_s} (bekleme dahil)")
-                    else:
-                        lines.append(f"   ⏱️ {total_s}")
-                else:
-                    lines.append(f"   ⏱️ {o.duration or '?'}")
-                
-                if details["layovers"]:
-                    stops_label = o.stops or f"{len(details['layovers'])} aktarma"
-                    lay_strs = []
-                    for lv in details["layovers"]:
-                        wait = _fmt_duration(lv["wait_mins"])
-                        lay_strs.append(f"{lv['airport']} ({wait})")
-                    lines.append(f"   ✈️ {stops_label}: {', '.join(lay_strs)}")
-                else:
-                    lines.append(f"   ✈️ Direkt")
+            if q and q.status == "ok" and q.offers:
+                break  # ✅ Başarılı
+            
+            err = getattr(q.error, "code", None) if q and q.error else None
+            last_err = getattr(err, "value", str(err)) if err else "no_query"
+            
+            if "blocked" in last_err.lower() and attempt < MAX_ATTEMPTS:
+                print(f"  ⚠️ BLOCKED (deneme {attempt}/{MAX_ATTEMPTS}), {WAIT_SECONDS}s bekleniyor...", flush=True)
+                time.sleep(WAIT_SECONDS)
+                continue
             else:
-                lines.append(f"   ⏱️ {o.duration or '?'} | ✈️ {o.stops or '?'}")
+                return f"⚠️ Canlı fiyat çekilemedi.\nKod: {last_err}"
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {str(e)[:80]}"
+            if attempt < MAX_ATTEMPTS:
+                print(f"  ⚠️ Exception (deneme {attempt}/{MAX_ATTEMPTS}): {last_err}, {WAIT_SECONDS}s...", flush=True)
+                time.sleep(WAIT_SECONDS)
+                continue
+            return f"❌ Hata: {last_err}"
+    
+    if not q or q.status != "ok" or not q.offers:
+        return f"⚠️ {MAX_ATTEMPTS} denemede de Google BLOCKED.\n15-20 dakika sonra tekrar deneyin.\nSon hata: {last_err}"
+    
+    # --- Başarılı, çıktıyı üret ---
+    level_emoji = "⚪"
+    level_text = "BİLİNMİYOR"
+    if q.price_insight:
+        level = q.price_insight.level
+        level_emoji = {"low": "🟢", "typical": "🟡", "high": "🔴"}.get(level, "⚪")
+        level_text = level.upper()
 
-            bag = format_baggage(o)
-            if bag:
-                lines.append(f"   {bag}")
+    lines = [f"✈️ <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)\n📅 {dep}\n"]
+    seen_airlines = set()
+    display_count = 0
 
-            vs = format_vs_typical(o.vs_typical_pct)
-            if vs:
-                lines.append(f"   {vs}")
+    for o in q.offers:
+        if display_count >= 4: break
+        if o.airline in seen_airlines: continue
+        seen_airlines.add(o.airline)
+        display_count += 1
 
-            if o.google_flights_url:
-                lines.append(f"   🔗 <a href='{o.google_flights_url}'>Google Flights</a>")
-            lines.append("")
+        lines.append(f"<b>{display_count}. {o.airline}</b> — <b>{o.price_text}</b>")
+        lines.append(f"   🕐 {o.departure or '?'} → {o.arrival or '?'}")
+        
+        details = flight_details(o)
+        if details:
+            flight_s = _fmt_duration(details["flight_mins"])
+            total_s = _fmt_duration(details["total_mins"])
+            if details["flight_mins"] and details["total_mins"]:
+                wait_total = details["total_mins"] - details["flight_mins"]
+                if wait_total > 30:
+                    lines.append(f"   ⏱️ Uçuş: {flight_s} | Toplam: {total_s} (bekleme dahil)")
+                else:
+                    lines.append(f"   ⏱️ {total_s}")
+            else:
+                lines.append(f"   ⏱️ {o.duration or '?'}")
+            if details["layovers"]:
+                stops_label = o.stops or f"{len(details['layovers'])} aktarma"
+                lay_strs = []
+                for lv in details["layovers"]:
+                    wait = _fmt_duration(lv["wait_mins"])
+                    lay_strs.append(f"{lv['airport']} ({wait})")
+                lines.append(f"   ✈️ {stops_label}: {', '.join(lay_strs)}")
+            else:
+                lines.append(f"   ✈️ Direkt")
+        else:
+            lines.append(f"   ⏱️ {o.duration or '?'} | ✈️ {o.stops or '?'}")
 
-        if q.price_insight:
-            pi = q.price_insight
-            lines.append(f"{level_emoji} <b>Seviye: {level_text}</b>")
-            if pi.lowest:
-                lines.append(f"   💰 En düşük: {pi.lowest:,.0f} TRY")
-            if pi.typical_range:
-                lo, hi = pi.typical_range
-                lines.append(f"   📊 Tipik aralık: {lo:,.0f} - {hi:,.0f} TRY")
+        bag = format_baggage(o)
+        if bag: lines.append(f"   {bag}")
+        vs = format_vs_typical(o.vs_typical_pct)
+        if vs: lines.append(f"   {vs}")
+        if o.google_flights_url:
+            lines.append(f"   🔗 <a href='{o.google_flights_url}'>Google Flights</a>")
+        lines.append("")
 
-        # 🛂 Vize durumu (Doğru girinti: 8 boşluk)
-        lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+    if q.price_insight:
+        pi = q.price_insight
+        lines.append(f"{level_emoji} <b>Seviye: {level_text}</b>")
+        if pi.lowest:
+            lines.append(f"   💰 En düşük: {pi.lowest:,.0f} TRY")
+        if pi.typical_range:
+            lo, hi = pi.typical_range
+            lines.append(f"   📊 Tipik aralık: {lo:,.0f} - {hi:,.0f} TRY")
 
-        return "\n".join(lines)
-    except Exception as e:
-        return f"❌ Hata: {str(e)[:120]}"
+    lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+    return "\n".join(lines)
 
 def cmd_esnek(args):
     if len(args) < 4: return "❌ Kullanım: <code>/esnek IST BKK 2027-02-15 5</code>"
@@ -348,36 +362,54 @@ def cmd_esnek(args):
     except ValueError:
         return "❌ Tarih veya gün formatı hatalı."
 
-    try:
-        report = search_flex(
-            origin=origin, destination=dest,
-            around=target_date, flex_days=flex_days,
-            trip="rt", nights=7,
-            currency="TRY", max_stops=1, top=3
-        )
-        if not report.days: return "⚠️ Esnek tarama sonuç vermedi (BLOCKED olabilir)."
+    MAX_ATTEMPTS = 3
+    WAIT_SECONDS = 20
+    report = None
+    
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            report = search_flex(
+                origin=origin, destination=dest,
+                around=target_date, flex_days=flex_days,
+                trip="rt", nights=7,
+                currency="TRY", max_stops=1, top=3
+            )
+            priced = [(d.departure_date, d.price, d.airline, d.stops_count, d.vs_typical_pct)
+                      for d in (report.days or []) if d.price]
+            if priced:
+                break  # ✅ Başarılı
+            # priced boş -> BLOCKED olabilir, retry
+            if attempt < MAX_ATTEMPTS:
+                print(f"  ⚠️ Esnek: fiyatlı gün yok (deneme {attempt}/{MAX_ATTEMPTS}), {WAIT_SECONDS}s...", flush=True)
+                time.sleep(WAIT_SECONDS)
+        except Exception as e:
+            print(f"  ⚠️ Esnek exception (deneme {attempt}/{MAX_ATTEMPTS}): {str(e)[:80]}", flush=True)
+            if attempt < MAX_ATTEMPTS:
+                time.sleep(WAIT_SECONDS)
 
-        priced = [(d.departure_date, d.price, d.airline, d.stops_count, d.vs_typical_pct) for d in report.days if d.price]
-        if not priced: return "📭 Fiyat bilgisi olan gün yok."
-        priced.sort(key=lambda x: x[1])
+    if not report or not report.days:
+        return "⚠️ Esnek tarama sonuç vermedi (Google BLOCKED). 15-20 dakika sonra tekrar deneyin."
 
-        lines = [f"📅 <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş, {dep_str} ±{flex_days}g)\n", "<b>En ucuz 3 gün:</b>"]
-        for i, (d_date, price, air, stops, pct) in enumerate(priced[:3], 1):
-            flag = "🎯" if pct is not None and pct <= -10 else "  "
-            lines.append(f"{flag} {i}. <b>{d_date}</b> — <b>{price:,.0f} TRY</b>")
-            lines.append(f"     {air or '?'} | {stops} aktarma")
-            vs = format_vs_typical(pct)
-            if vs: lines.append(f"     {vs}")
+    priced = [(d.departure_date, d.price, d.airline, d.stops_count, d.vs_typical_pct)
+              for d in report.days if d.price]
+    if not priced:
+        return "📭 Fiyat bilgisi olan gün yok (BLOCKED olabilir). 15-20 dakika sonra deneyin."
+    
+    priced.sort(key=lambda x: x[1])
 
-        if report.typical: 
-            lines.append(f"\n📊 Tipik fiyat: {report.typical:,.0f} TRY")
-        
-        # 🛂 Vize durumu (Doğru girinti: 8 boşluk)
-        lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+    lines = [f"📅 <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş, {dep_str} ±{flex_days}g)\n", "<b>En ucuz 3 gün:</b>"]
+    for i, (d_date, price, air, stops, pct) in enumerate(priced[:3], 1):
+        flag = "🎯" if pct is not None and pct <= -10 else "  "
+        lines.append(f"{flag} {i}. <b>{d_date}</b> — <b>{price:,.0f} TRY</b>")
+        lines.append(f"     {air or '?'} | {stops} aktarma")
+        vs = format_vs_typical(pct)
+        if vs: lines.append(f"     {vs}")
 
-        return "\n".join(lines)
-    except Exception as e:
-        return f"❌ Esnek tarama hatası: {str(e)[:120]}"
+    if report.typical:
+        lines.append(f"\n📊 Tipik fiyat: {report.typical:,.0f} TRY")
+    
+    lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+    return "\n".join(lines)
 
 
 def cmd_takvim(args):
