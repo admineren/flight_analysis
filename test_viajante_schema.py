@@ -1,117 +1,139 @@
 """
-Viajante gerçek yanıt şeması — JSON dökümü.
-Hem get_flights hem search_flex için tüm alanları gösterir.
+Viajante gelişmiş testler:
+1. RoundTrip desteği (get_flights vs search_flights)
+2. 3 aylık tarama (31 günlük dilimler)
+3. Fiyat geçmişi (price_history) özelliği
 """
-import json
+import os
 import time
-from datetime import date, datetime
-from dataclasses import asdict, is_dataclass
+from datetime import date, timedelta
 
-from viajante import get_flights, search_flex
+# Fiyat geçmişini etkinleştir (testten önce)
+os.environ["VIAJANTE_PRICE_HISTORY"] = "1"
 
-
-def jsonable(obj):
-    """date/datetime/enum'ları JSON'a çevir."""
-    if is_dataclass(obj):
-        return asdict(obj)
-    if isinstance(obj, (date, datetime)):
-        return obj.isoformat()
-    if hasattr(obj, "value"):  # enum
-        return obj.value
-    return str(obj)
+from viajante import get_flights, search_flights, search_dates, RoundTrip, price_history
 
 
-def dump(title, obj):
-    print(f"\n{'='*70}")
-    print(f"{title}")
-    print('=' * 70)
+def test_roundtrip():
+    """RoundTrip nesnesinin get_flights ve search_flights ile kullanımı."""
+    print("\n" + "="*70)
+    print("TEST 1: RoundTrip Desteği")
+    print("="*70)
+
+    depart = date(2027, 2, 15)
+    ret = date(2027, 2, 22)
+    trip = RoundTrip(
+        origin="IST", destination="BKK",
+        departure_date=depart, return_date=ret,
+        max_stops=1,
+    )
+
+    # Deneme 1: get_flights ile doğrudan Trip nesnesi
+    print("\n--- 1a: get_flights(RoundTrip) ---")
     try:
-        print(json.dumps(obj, indent=2, default=jsonable, ensure_ascii=False))
+        report = get_flights(trip, fetch="sweep", top=3, currency="TRY")
+        for q in report.queries:
+            if q.status == "ok":
+                print(f"  ✅ Başarılı: {len(q.offers)} teklif")
+                for o in q.offers[:2]:
+                    print(f"     {o.airline} | {o.price_text} | {o.duration} | {o.stops}")
+            else:
+                print(f"  ❌ Hata: {getattr(q.error.code, 'value', '?')}")
     except Exception as e:
-        print(f"JSON dökümü başarısız: {e}")
-        print(repr(obj)[:2000])
+        print(f"  ❌ Exception: {type(e).__name__}: {str(e)[:150]}")
+
+    time.sleep(5)
+
+    # Deneme 2: search_flights ile Sequence[Trip]
+    print("\n--- 1b: search_flights([RoundTrip]) ---")
+    try:
+        report = search_flights([trip], top=3, currency="TRY")
+        for q in report.queries:
+            if q.status == "ok":
+                print(f"  ✅ Başarılı: {len(q.offers)} teklif")
+                for o in q.offers[:2]:
+                    print(f"     {o.airline} | {o.price_text} | {o.duration} | {o.stops}")
+            else:
+                print(f"  ❌ Hata: {getattr(q.error.code, 'value', '?')}")
+    except Exception as e:
+        print(f"  ❌ Exception: {type(e).__name__}: {str(e)[:150]}")
 
 
-# ============================================================
-# 1. get_flights — Tek rota, tek tarih
-# ============================================================
-print("### TEST 1: get_flights (IST-BCN 2027-01-15) ###")
-try:
-    report = get_flights(
-        "IST-BCN:2027-01-15",
-        fetch="sweep", top=3, currency="TRY",
-    )
-    dump("SearchReport (üst seviye)", {
-        "searched_at": report.searched_at,
-        "currency": report.currency,
-        "locale": report.locale,
-        "fetch_backend": report.fetch_backend,
-        "fetch_ms": report.fetch_ms,
-        "schema_version": report.schema_version,
-        "coverage": report.coverage,
-        "queries_count": len(report.queries),
-    })
+def test_three_month_scan():
+    """3 aylık tarama: 31 günlük dilimlere bölerek en ucuz günleri bul."""
+    print("\n" + "="*70)
+    print("TEST 2: 3 Aylık Tarama (31 günlük dilimler)")
+    print("="*70)
 
-    for q in report.queries:
-        if q.status == "ok":
-            dump("QuerySuccess — tüm alanlar", {
-                "status": q.status,
-                "raw_count": q.raw_count,
-                "eligible_count": q.eligible_count,
-                "offers_count": len(q.offers),
-                "first_offer": q.offers[0] if q.offers else None,
-                "stops_compare": q.stops_compare,
-                "price_insight": q.price_insight,
-                "empty_reason": q.empty_reason,
-                "page_errors_count": len(q.page_errors),
-                "nearby_dates": q.nearby_dates,
-            })
-        else:
-            err = q.error
-            dump("QueryFailure", {
-                "status": q.status,
-                "error_code": getattr(err.code, "value", str(err.code)),
-                "error_message": err.message,
-                "rate_limited": err.rate_limited,
-                "retry_until": err.retry_until,
-            })
-except Exception as e:
-    print(f"TEST 1 HATA: {type(e).__name__}: {e}")
+    origin, dest = "IST", "BKK"
+    start = date(2027, 2, 1)
+    end = date(2027, 4, 30)  # ~3 ay
 
+    all_results = []
+    current = start
 
-# Rate limit için bekle
-print("\n15 saniye bekleniyor (rate limit)...")
-time.sleep(15)
+    while current <= end:
+        # Her dilim en fazla 31 gün
+        window_end = min(current + timedelta(days=30), end)
+        print(f"\n  Dilim: {current} → {window_end}")
+
+        try:
+            report = search_dates(
+                origin=origin, destination=dest,
+                start=current, end=window_end,
+                currency="TRY", nights=7, max_stops=1,
+            )
+            if report.days:
+                priced = [(d.departure_date, d.price) for d in report.days if d.price]
+                all_results.extend(priced)
+                print(f"    ✅ {len(priced)} gün fiyatlı")
+            else:
+                print(f"    ⚠️ Sonuç yok")
+        except Exception as e:
+            print(f"    ❌ Hata: {type(e).__name__}: {str(e)[:100]}")
+
+        current = window_end + timedelta(days=1)
+        time.sleep(8)  # rate limit
+
+    # En ucuz 5 günü göster
+    if all_results:
+        all_results.sort(key=lambda x: x[1])
+        print(f"\n  🏆 En ucuz 5 gün ({start} - {end}):")
+        for d, p in all_results[:5]:
+            print(f"     {d} → {p:,.0f} TRY")
+    else:
+        print("\n  ❌ Hiç sonuç alınamadı (Google BLOCKED olabilir).")
 
 
-# ============================================================
-# 2. search_flex — ±3 gün esnek tarama
-# ============================================================
-print("\n### TEST 2: search_flex (IST-BCN 2027-01-15 ±3 gün) ###")
-try:
-    flex = search_flex(
-        origin="IST", destination="BCN",
-        around=date(2027, 1, 15), flex_days=3,
-        currency="TRY", max_stops=1, top=3,
-    )
-    dump("FlexSearchReport (üst seviye)", {
-        "searched_at": flex.searched_at,
-        "origin": flex.origin,
-        "destination": flex.destination,
-        "around": flex.around,
-        "flex_days": flex.flex_days,
-        "start_date": flex.start_date,
-        "end_date": flex.end_date,
-        "chosen_date": flex.chosen_date,
-        "return_date": flex.return_date,
-        "currency": flex.currency,
-        "offers_count": len(flex.offers),
-        "stops_compare": flex.stops_compare,
-        "typical": flex.typical,
-        "vs_typical": flex.vs_typical,
-        "days_count": len(flex.days),
-        "first_3_days": flex.days[:3] if flex.days else None,
-        "error": flex.error,
-    })
-except Exception as e:
-    print(f"TEST 2 HATA: {type(e).__name__}: {e}")
+def test_price_history():
+    """Fiyat geçmişi kaydı ve okunması."""
+    print("\n" + "="*70)
+    print("TEST 3: Fiyat Geçmişi (price_history)")
+    print("="*70)
+
+    # Önce birkaç arama yap (geçmişe kayıt için)
+    print("\n  Önce 2 arama yapılıyor (kayıt için)...")
+    for i in range(2):
+        try:
+            get_flights("IST-BKK:2027-02-15", fetch="sweep", top=1, currency="TRY")
+            print(f"    Arama {i+1} tamam")
+        except Exception:
+            pass
+        time.sleep(5)
+
+    # Geçmişi oku
+    print("\n  Geçmiş okunuyor...")
+    try:
+        hist = price_history(kind="flight", route="IST-BKK", limit=5)
+        print(f"  Sonuç: {hist}")
+    except Exception as e:
+        print(f"  ❌ Hata: {type(e).__name__}: {str(e)[:150]}")
+
+
+if __name__ == "__main__":
+    test_roundtrip()
+    time.sleep(10)
+    test_three_month_scan()
+    time.sleep(10)
+    test_price_history()
+    print("\n=== Tüm testler tamamlandı ===")
