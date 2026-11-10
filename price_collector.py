@@ -12,7 +12,7 @@ TB_HOST = os.environ.get("TINYBIRD_HOST", "https://api.tinybird.co")
 TB_INGEST_TOKEN = os.environ.get("TB_INGEST_TOKEN")
 TB_DATASOURCE = "price_history"
 
-STATE_FILE = "price_collector_state.json"
+STATE_FILE = os.path.join("data", "price_collector_state.json")
 
 # ============================================================
 # WATCHLIST
