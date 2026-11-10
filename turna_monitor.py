@@ -4,8 +4,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from curl_cffi import requests as curl_requests
 
-WATCH_FILE = "turna_watch.json"
-STATE_FILE = "turna_state.json"
+WATCH_FILE = os.path.join("data", "turna_watch.json")
+STATE_FILE = os.path.join("data", "turna_state.json")
 API_URL = "https://www.turna.com/api/proxy/v1/analytics/cheapest/flights_to"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
