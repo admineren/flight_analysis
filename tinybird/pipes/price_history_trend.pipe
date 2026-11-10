@@ -2,6 +2,7 @@ TOKEN telegram_read_token READ
 
 NODE trend_node
 SQL >
+%
     SELECT
         min(price) AS lowest_price,
         max(price) AS highest_price,
