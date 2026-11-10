@@ -1,0 +1,46 @@
+name: Vize Verisi Güncelleyici
+
+on:
+  schedule:
+    # Her Pazartesi sabahı 06:00'da (Türkiye saatiyle) çalışır.
+    # UTC 03:00 = TSİ 06:00
+    - cron: "0 3 * * 1"
+  
+  # İstediğiniz an manuel çalıştırmak için
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: visa-data-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bağımlılıkları kur
+        run: pip install requests
+
+      - name: Vize verisini çek ve JSON'a kaydet
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+        run: python update_visa_data.py
+
+      - name: Güncellenen JSON'u repoya commit et
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add visa_data.json
+          git commit -m "update visa data [skip ci]" || echo "no changes"
+          git pull --rebase origin main || true
+          git push
