@@ -113,10 +113,29 @@ def format_baggage(offer):
     return ""
 
 def format_layovers(offer):
-    if not getattr(offer, "layover_city", None):
-        return ""
-    hours = getattr(offer, "layover_hours", 0) or 0
-    return f"📍 {offer.layover_city} ({hours:.1f}s bekleme)"
+    """Gidiş-dönüşlerde aktarma şehirlerini segmentlerden çıkarır."""
+    # Önce doğrudan layover_city var mı bak (tek yönlerde çalışır)
+    if getattr(offer, "layover_city", None):
+        hours = getattr(offer, "layover_hours", 0) or 0
+        return f"📍 {offer.layover_city} ({hours:.1f}s bekleme)"
+    
+    # Yoksa segmentlere bak (gidiş-dönüşlerde çalışır)
+    layover_strs = []
+    for leg in (offer.legs or ()):
+        segments = leg.segments or ()
+        for i, seg in enumerate(segments[:-1]):
+            next_seg = segments[i + 1]
+            # Havalimanı kodunu al
+            airport = seg.destination or "?"
+            # Saatleri al
+            arr = seg.arrival or "?"
+            dep = next_seg.departure or "?"
+            layover_strs.append(f"{airport} ({arr}→{dep})")
+    
+    if layover_strs:
+        return "📍 " + ", ".join(layover_strs)
+    
+    return ""
 
 # ============================================================
 # KOMUTLAR
