@@ -298,9 +298,18 @@ def cmd_takvim(args):
                     results.append((best[0].strftime("%Y-%m"), best[1], best[0], best[2]))
         except Exception as e:
             print(f"  ❌ Hata: {str(e)[:100]}", flush=True)
-        if i < len(windows) - 1: time.sleep(10)  # Rate limit
+        if i < len(windows) - 1:
+            print(f"  ⏳ 25 saniye bekleniyor (rate limit)...", flush=True)
+            time.sleep(25)  # 10 → 25 saniye
     
-    if not results: return "📭 Belirtilen aralıkta fiyat verisi bulunamadı."
+    if not results:
+        return (
+            "⚠️ Google rate limit (BLOCKED) nedeniyle veri alınamadı.\n\n"
+            "💡 Öneriler:\n"
+            "• 15-20 dakika sonra tekrar deneyin\n"
+            "• Daha kısa aralık seçin (ör. tek ay: <code>/takvim IST BKK 2027-02-01 2027-02-28</code>)\n"
+            "• Veya <code>/esnek IST BKK 2027-02-15 7</code> ile daha küçük pencere deneyin"
+        )
 
     by_month = defaultdict(list)
     for m, p, d, a in results: by_month[m].append((p, d, a))
