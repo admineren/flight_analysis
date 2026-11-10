@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 # --- Ucuza Uç Kaynağı ---
 UCUZAUC_URL = "https://www.ucuzauc.org/kalkis/istanbul"
-UCUZAUC_STATE_FILE = "ucuzauc_state.json"
+UCUZAUC_STATE_FILE = os.path.join("data", "ucuzauc_state.json")
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
