@@ -2,15 +2,13 @@ import os
 import json
 import requests
 import time
-import sys
 from datetime import datetime, timezone, date
 from viajante import get_flights, RoundTrip
 
-print("🚀 BETİK ÇALIŞMAYA BAŞLADI...", flush=True)
-sys.stdout.flush()
+print("1. Importlar başarılı, değişkenler ayarlanıyor...", flush=True)
 
 TB_HOST = os.environ.get("TINYBIRD_HOST", "https://api.tinybird.co")
-TB_INGEST_TOKEN = os.environ["TB_INGEST_TOKEN"]
+TB_INGEST_TOKEN = os.environ.get("TB_INGEST_TOKEN")
 TB_DATASOURCE = "price_history"
 
 STATE_FILE = "price_collector_state.json"
@@ -39,8 +37,10 @@ def save_state(state):
 
 def send_to_tinybird(payloads):
     if not payloads:
+        print("Tinybird'e gönderilecek yeni veri yok.")
         return False
     
+    print(f"Tinybird'e {len(payloads)} adet veri gönderiliyor...", flush=True)
     url = f"{TB_HOST}/v0/events?name={TB_DATASOURCE}"
     headers = {
         "Authorization": f"Bearer {TB_INGEST_TOKEN}",
@@ -51,7 +51,7 @@ def send_to_tinybird(payloads):
     try:
         r = requests.post(url, headers=headers, data=data, timeout=15)
         if r.status_code == 202:
-            print(f"✅ {len(payloads)} fiyat Tinybird'e gönderildi.")
+            print(f"✅ {len(payloads)} fiyat Tinybird'e başarıyla gönderildi.")
             return True
         else:
             print(f"❌ Tinybird Hatası: {r.status_code} - {r.text[:200]}")
@@ -61,14 +61,14 @@ def send_to_tinybird(payloads):
         return False
 
 def main():
-    print(f"=== Price Collector Başladı: {datetime.now(timezone.utc).isoformat()} ===")
+    print("2. main() fonksiyonu başladı...", flush=True)
     state = load_state()
     payloads = []
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for route in WATCHLIST:
         route_id = f"{route['origin']}-{route['dest']}-{route['depart']}"
-        print(f"[{route_id}] Sorgulanıyor...")
+        print(f"3. [{route_id}] için Trip nesnesi oluşturuluyor...", flush=True)
         
         trip = RoundTrip(
             origin=route["origin"],
@@ -81,7 +81,11 @@ def main():
         success = False
         for attempt in range(3):
             try:
-                report = get_flights(trip, fetch="sweep", top=1, currency="TRY")
+                print(f"4. [{route_id}] Google Flights'a istek atılıyor (Deneme {attempt+1}/3)...", flush=True)
+                # KRİTİK EKLEME: deadline_seconds=60 eklendi. 60 saniye içinde yanıt gelmezse iptal eder.
+                report = get_flights(trip, fetch="sweep", top=1, currency="TRY", deadline_seconds=60)
+                print(f"5. [{route_id}] İstek tamamlandı, yanıt işleniyor...", flush=True)
+                
                 if report.queries and report.queries[0].status == "ok" and report.queries[0].offers:
                     best = report.queries[0].offers[0]
                     price = best.price
@@ -102,34 +106,31 @@ def main():
                             "source": "viajante",
                             "observed_at": now_str
                         })
-                        # state güncellemesini buradan kaldırdık! (Aşağıda yapacağız)
-                        print(f"  📉 Yeni fiyat: {price} TRY ({airline})")
+                        print(f"  📉 Yeni fiyat bulundu: {price} TRY ({airline})")
                     success = True
                     break 
-                    
                 else:
-                    err = getattr(report.queries[0].error, 'code', 'unknown') if report.queries else 'no_query'
-                    print(f"  ⚠️ Sonuç yok/Hata (Deneme {attempt+1}/3): {err}")
-                    if err == "blocked":
-                        time.sleep(30)
+                    err_code = getattr(report.queries[0].error, 'code', 'unknown') if report.queries else 'no_query'
+                    print(f"  ⚠️ Sonuç yok/Hata (Deneme {attempt+1}/3): {err_code}")
+                    if err_code == "blocked":
+                        time.sleep(20)
             except Exception as e:
                 print(f"  ❌ Viajante hatası (Deneme {attempt+1}/3): {str(e)[:100]}")
-                time.sleep(10)
+                time.sleep(5)
         
         if not success:
             print(f"  ❌ {route_id} atlandı (3 denemede başarısız).")
             
-        time.sleep(10)
+        time.sleep(5)
 
-    # Tinybird'e gönder ve BAŞARILI OLURSA state'i güncelle
-    if payloads:
-        if send_to_tinybird(payloads):
-            # Sadece başarılıysa state'i güncelle
-            for p in payloads:
-                r_id = f"{p['origin']}-{p['destination']}-{p['departure_date']}"
-                state[r_id] = {"price": p["price"], "updated_at": p["observed_at"]}
-            save_state(state)
-    else:
-        print("\nGönderilecek yeni veri yok.")
-        
-    print("=== İşlem Tamamlandı ===")
+    print("6. Tüm rotalar tarandı, Tinybird'e gönderim aşamasına geçiliyor...", flush=True)
+    if send_to_tinybird(payloads):
+        for p in payloads:
+            r_id = f"{p['origin']}-{p['destination']}-{p['departure_date']}"
+            state[r_id] = {"price": p["price"], "updated_at": p["observed_at"]}
+        save_state(state)
+    
+    print("=== İşlem Tamamlandı ===", flush=True)
+
+if __name__ == "__main__":
+    main()
