@@ -1,0 +1,16 @@
+{
+  "data": {
+    "passport": "TR",
+    "colors": {
+      "red": "AD,AE,AF,AT,AU,AW,BE,BG,BL,BM,CA,CF,CG,CH,CM,CN,CV,CW,CY,CZ,DE,DK,DZ,EE,ER,ES,FI,FR,GB,GD,GI,GP,GR,GY,HR,HU,IE,IL,IN,IS,IT,KI,KP,KY,LI,LS,LT,LU,LV,MC,ME,MF,ML,MQ,MT,NE,NL,NO,NR,PL,PT,RO,SE,SI,SK,SM,SO,SX,TC,TJ,TR,US,VA,VG,YE",
+      "green": "AG,AL,AO,AR,AZ,BA,BB,BN,BO,BR,BS,BW,BY,BZ,CL,CO,CR,DM,DO,EC,FJ,FM,GE,GM,GT,HK,HN,HT,ID,IR,JM,JP,KG,KZ,LC,MA,MD,MK,MN,MO,MU,MY,NI,OM,PA,PE,PH,PS,PY,RS,SG,SR,ST,SV,SY,SZ,TH,TN,TT,UA,UY,UZ,VC,VE,VU,XK,ZA,ZM",
+      "blue": "AI,AM,BD,BF,BH,BI,BJ,BT,CD,CU,DJ,EG,ET,GA,GH,GN,GQ,GW,IQ,JO,KH,KM,KW,LA,LB,LR,LY,MG,MH,MM,MR,MS,MV,MW,MZ,NA,NG,NP,NZ,PG,PK,PW,QA,RU,RW,SA,SB,SD,SL,SN,SS,TD,TG,TL,TM,TO,TV,TW,TZ,UG,VN,WS,ZW",
+      "yellow": "CI,KE,KN,KR,LK,MX,SC"
+    }
+  },
+  "meta": {
+    "version": "2.0",
+    "language": "en",
+    "generated_at": "2026-11-10T01:19:33+00:00"
+  }
+}
