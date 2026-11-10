@@ -6,6 +6,7 @@ import json
 import time
 import requests
 from datetime import datetime, timezone, date, timedelta
+from zoneinfo import ZoneInfo
 from collections import defaultdict
 
 print("📦 Kütüphaneler yükleniyor (viajante)...", flush=True)
@@ -112,30 +113,66 @@ def format_baggage(offer):
         return f"🎒 {offer.carry_on} kg kabin"
     return ""
 
-def format_layovers(offer):
-    """Gidiş-dönüşlerde aktarma şehirlerini segmentlerden çıkarır."""
-    # Önce doğrudan layover_city var mı bak (tek yönlerde çalışır)
-    if getattr(offer, "layover_city", None):
-        hours = getattr(offer, "layover_hours", 0) or 0
-        return f"📍 {offer.layover_city} ({hours:.1f}s bekleme)"
+def _seg_dt(seg, is_arrival):
+    """Segment için timezone-aware datetime döndürür."""
+    if is_arrival:
+        d, t, tz = seg.arrival_date, seg.arrival, seg.arrival_timezone
+    else:
+        d, t, tz = seg.departure_date, seg.departure, seg.departure_timezone
+    if not (d and t and tz):
+        return None
+    try:
+        naive = datetime.strptime(f"{d} {t}", "%Y-%m-%d %H:%M")
+        return naive.replace(tzinfo=ZoneInfo(tz))
+    except Exception:
+        return None
+
+
+def _fmt_duration(mins):
+    if mins is None or mins < 0:
+        return "?"
+    h, m = divmod(int(mins), 60)
+    return f"{h}s {m:02d}dk"
+
+
+def flight_details(offer):
+    """Gidiş yönü için: sadece uçuş süresi, toplam süre, aktarma detayları."""
+    if not offer.legs:
+        return None
     
-    # Yoksa segmentlere bak (gidiş-dönüşlerde çalışır)
-    layover_strs = []
-    for leg in (offer.legs or ()):
-        segments = leg.segments or ()
-        for i, seg in enumerate(segments[:-1]):
-            next_seg = segments[i + 1]
-            # Havalimanı kodunu al
-            airport = seg.destination or "?"
-            # Saatleri al
-            arr = seg.arrival or "?"
-            dep = next_seg.departure or "?"
-            layover_strs.append(f"{airport} ({arr}→{dep})")
+    outbound = offer.legs[0]
+    segs = outbound.segments or ()
+    if not segs:
+        return None
     
-    if layover_strs:
-        return "📍 " + ", ".join(layover_strs)
+    # Sadece uçakta geçen süre (segment süreleri toplamı)
+    flight_mins = sum((s.duration_minutes or 0) for s in segs) or None
     
-    return ""
+    # Toplam süre (kalkış → son varış, bekleme dahil)
+    first_dep = _seg_dt(segs[0], is_arrival=False)
+    last_arr = _seg_dt(segs[-1], is_arrival=True)
+    total_mins = None
+    if first_dep and last_arr:
+        total_mins = int((last_arr - first_dep).total_seconds() // 60)
+    
+    # Aktarmalar
+    layovers = []
+    for i in range(len(segs) - 1):
+        cur_arr = _seg_dt(segs[i], is_arrival=True)
+        nxt_dep = _seg_dt(segs[i + 1], is_arrival=False)
+        wait_mins = None
+        if cur_arr and nxt_dep:
+            wait_mins = int((nxt_dep - cur_arr).total_seconds() // 60)
+        layovers.append({
+            "airport": segs[i].destination or "?",
+            "wait_mins": wait_mins,
+        })
+    
+    return {
+        "flight_mins": flight_mins,
+        "total_mins": total_mins,
+        "layovers": layovers,
+    }
 
 # ============================================================
 # KOMUTLAR
@@ -208,7 +245,6 @@ def cmd_ara(args):
     
     try:
         from viajante import RoundTrip
-        # Gidiş-dönüş: 7 gece kalış varsayımı
         trip = RoundTrip(
             origin=origin, destination=dest,
             departure_date=date.fromisoformat(dep),
@@ -216,12 +252,12 @@ def cmd_ara(args):
             max_stops=1,
         )
         
-        report = get_flights(trip, fetch="sweep", top=3, currency="TRY", deadline_seconds=45)
+        report = get_flights(trip, fetch="sweep", top=10, currency="TRY", deadline_seconds=45)
         q = report.queries[0] if report.queries else None
         
         if not q or q.status != "ok" or not q.offers:
             err = getattr(q.error, "code", "unknown") if q and q.error else "no_query"
-            return f"⚠️ Canlı fiyat çekilemedi (Google BLOCKED olabilir).\nKod: {err}"
+            return f"⚠️ Canlı fiyat çekilemedi.\nKod: {err}"
 
         level_emoji = "⚪"
         level_text = "BİLİNMİYOR"
@@ -230,32 +266,69 @@ def cmd_ara(args):
             level_emoji = {"low": "🟢", "typical": "🟡", "high": "🔴"}.get(level, "⚪")
             level_text = level.upper()
 
-        # Başlığa gidiş-dönüş bilgisini ekle
-        lines = [f"✈️ <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)\n📅 {dep} → {date.fromisoformat(dep) + timedelta(days=7)}\n"]
+        lines = [f"✈️ <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)\n📅 {dep}\n"]
 
-        for i, o in enumerate(q.offers[:3], 1):
-            lines.append(f"<b>{i}. {o.airline}</b> — <b>{o.price_text}</b>")
-            dep_t, arr_t, dur = o.departure or "?", o.arrival or "?", o.duration or "?"
-            lines.append(f"   🕐 {dep_t} → {arr_t} | {dur}")
+        seen_airlines = set()
+        display_count = 0
 
-            stops_label = o.stops or "?"
-            layover_info = format_layovers(o)
-            lines.append(f"   ✈️ {stops_label}" + (f" | {layover_info}" if layover_info else ""))
+        for o in q.offers:
+            if display_count >= 4:
+                break
+            if o.airline in seen_airlines:
+                continue
+            seen_airlines.add(o.airline)
+            display_count += 1
 
+            lines.append(f"<b>{display_count}. {o.airline}</b> — <b>{o.price_text}</b>")
+            
+            lines.append(f"   🕐 {o.departure or '?'} → {o.arrival or '?'}")
+
+            details = flight_details(o)
+            if details:
+                flight_s = _fmt_duration(details["flight_mins"])
+                total_s = _fmt_duration(details["total_mins"])
+                
+                if details["flight_mins"] and details["total_mins"]:
+                    # Bekleme varsa göster
+                    wait_total = details["total_mins"] - details["flight_mins"]
+                    if wait_total > 30:
+                        lines.append(f"   ⏱️ Uçuş: {flight_s} | Toplam: {total_s} (bekleme dahil)")
+                    else:
+                        lines.append(f"   ⏱️ {total_s}")
+                else:
+                    lines.append(f"   ⏱️ {o.duration or '?'}")
+                
+                # Aktarma detayları
+                if details["layovers"]:
+                    stops_label = o.stops or f"{len(details['layovers'])} aktarma"
+                    lay_strs = []
+                    for lv in details["layovers"]:
+                        wait = _fmt_duration(lv["wait_mins"])
+                        lay_strs.append(f"{lv['airport']} ({wait})")
+                    lines.append(f"   ✈️ {stops_label}: {', '.join(lay_strs)}")
+                else:
+                    lines.append(f"   ✈️ Direkt")
+            else:
+                lines.append(f"   ⏱️ {o.duration or '?'} | ✈️ {o.stops or '?'}")
+
+            # Bagaj
             bag = format_baggage(o)
-            if bag: lines.append(f"   {bag}")
+            if bag:
+                lines.append(f"   {bag}")
 
+            # Fiyat seviyesi
             vs = format_vs_typical(o.vs_typical_pct)
-            if vs: lines.append(f"   {vs}")
+            if vs:
+                lines.append(f"   {vs}")
 
+            # Link
             if o.google_flights_url:
-                lines.append(f"   🔗 <a href='{o.google_flights_url}'>Google Flights'ta Aç</a>")
+                lines.append(f"   🔗 <a href='{o.google_flights_url}'>Google Flights</a>")
             lines.append("")
 
         if q.price_insight:
             pi = q.price_insight
             lines.append(f"{level_emoji} <b>Seviye: {level_text}</b>")
-            if pi.lowest: lines.append(f"   💰 En düşük: {pi.lowest:,.0f} TRY")
             if pi.typical_range:
                 lo, hi = pi.typical_range
                 lines.append(f"   📊 Tipik aralık: {lo:,.0f} - {hi:,.0f} TRY")
