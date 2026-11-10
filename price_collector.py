@@ -57,7 +57,7 @@ def main():
     print(f"=== Price Collector Başladı: {datetime.now(timezone.utc).isoformat()} ===")
     state = load_state()
     payloads = []
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for route in WATCHLIST:
         route_id = f"{route['origin']}-{route['dest']}-{route['depart']}"
