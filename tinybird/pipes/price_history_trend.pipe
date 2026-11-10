@@ -1,3 +1,5 @@
+TOKEN telegram_read_token READ
+
 NODE trend_node
 SQL >
     SELECT
