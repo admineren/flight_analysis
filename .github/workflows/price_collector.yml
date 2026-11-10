@@ -38,7 +38,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -f price_collector_state.json ]; then
-            git add price_collector_state.json
+            git add data/price_collector_state.json
             git commit -m "update price collector state [skip ci]" || echo "no changes"
             git pull --rebase origin main || true
             git push
