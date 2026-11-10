@@ -275,8 +275,9 @@ def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
     typical_str = f", normal {_price_display(d.typical_price, d.currency)}" if d.typical_price else ""
     disclaimer = "<i>⚠️ Resmi olmayan veri. Kurallar değişebilir; seyahatten önce resmi makamlardan teyit edin.</i>"
 
+    country_display = f" ({d.destination_country})" if d.destination_country else ""
     msg = (
-        f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}</b>\n"
+        f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}{country_display}</b>\n"
         f"📅 {d.departure_date} → {d.return_date}\n"
         f"💰 <b>{price_str}</b>{typical_str} (<b>%{d.discount_pct or 0}</b>)\n"
         f"🛫 {airlines}\n"
