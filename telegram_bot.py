@@ -1,7 +1,6 @@
 import os
 import json
 import requests
-from datetime import datetime
 from viajante import get_flights, RoundTrip
 from datetime import date
 
@@ -11,6 +10,19 @@ TB_HOST = os.environ.get("TINYBIRD_HOST", "https://api.tinybird.co")
 TB_READ_TOKEN = os.environ["TB_READ_TOKEN"]
 
 STATE_FILE = "telegram_state.json"
+
+def load_state():
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return {"last_update_id": 0}
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
 
 def send_message(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -23,17 +35,15 @@ def send_message(text):
         print(f"Mesaj gönderilemedi: {e}")
 
 def query_tinybird_latest(origin, dest, dep_date):
-    """Tinybird'deki latest_price endpoint'ine sorar."""
     url = f"{TB_HOST}/v0/pipes/latest_price.json"
     headers = {"Authorization": f"Bearer {TB_READ_TOKEN}"}
     params = {"origin": origin, "destination": dest, "departure_date": dep_date}
-    
     try:
         r = requests.get(url, headers=headers, params=params, timeout=10)
         if r.status_code == 200:
             data = r.json().get("data", [])
             if data:
-                return data[0] # En son kaydı döndür
+                return data[0]
     except Exception as e:
         print(f"Tinybird okuma hatası: {e}")
     return None
@@ -42,15 +52,12 @@ def cmd_gecmis(args):
     if len(args) < 3:
         return "❌ Kullanım: <code>/gecmis IST BKK 2027-02-15</code>"
     origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
-    
     result = query_tinybird_latest(origin, dest, dep)
     if not result:
         return f"📭 Tinybird'de <b>{origin} → {dest}</b> ({dep}) için henüz kayıtlı veri yok."
-        
     price = result.get("price")
     airline = result.get("airline")
     observed = result.get("observed_at", "").replace("T", " ").replace("Z", "")
-    
     return (
         f"📊 <b>{origin} → {dest}</b> ({dep})\n\n"
         f"💰 Son kaydedilen fiyat: <b>{price:,.0f} TRY</b>\n"
@@ -62,16 +69,8 @@ def cmd_ara(args):
     if len(args) < 3:
         return "❌ Kullanım: <code>/ara IST BKK 2027-02-15</code>"
     origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
-    
-    trip = RoundTrip(
-        origin=origin, destination=dest,
-        departure_date=date.fromisoformat(dep),
-        return_date=date.fromisoformat(dep), # Geçici, tek yön gibi davranır
-        max_stops=1,
-    )
-    
     try:
-        # Sadece anlık fiyatı çek (canlı)
+        # Anlık canlı fiyat için tek yön arama yapıyoruz
         report = get_flights(f"{origin}-{dest}:{dep}", fetch="sweep", top=1, currency="TRY", deadline_seconds=30)
         if report.queries and report.queries[0].status == "ok" and report.queries[0].offers:
             o = report.queries[0].offers[0]
@@ -102,29 +101,33 @@ def process_command(text):
     return "❓ Bilinmeyen komut. <code>/yardim</code> yazın."
 
 def main():
-    print("Telegram Bot çalışıyor...", flush=True)
-    # Telegram'dan son mesajları çek (long polling)
+    print("Bot çalışıyor, mesajlar dinleniyor (25 saniye)...", flush=True)
+    state = load_state()
+    offset = state.get("last_update_id", 0) + 1
+    
     url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
     try:
-        r = requests.get(url, params={"timeout": 10}, timeout=15)
+        # TIMEOUT 25 SANİYE: Bot 25 saniye boyunca mesaj bekler
+        r = requests.get(url, params={"offset": offset, "timeout": 25}, timeout=30)
         updates = r.json().get("result", [])
         
+        if not updates:
+            print("Yeni mesaj yok.", flush=True)
+            return
+
         for upd in updates:
+            state["last_update_id"] = upd["update_id"]
             msg = upd.get("message", {})
+            
             if str(msg.get("chat", {}).get("id")) != str(CHAT_ID):
-                continue # Sadece size cevap ver
+                continue 
             
             text = msg.get("text", "")
             if text.startswith("/"):
-                print(f"Gelen komut: {text}", flush=True)
+                print(f"Komut işleniyor: {text}", flush=True)
                 reply = process_command(text)
                 send_message(reply)
                 
-                # Bu mesajı işaretle (bir daha okunmasın)
-                offset = upd["update_id"] + 1
-                requests.get(url, params={"offset": offset}, timeout=5)
+        save_state(state)
     except Exception as e:
-        print(f"Bot döngü hatası: {e}")
-
-if __name__ == "__main__":
-    main()
+        print(f"Bot hatası: {e}")
