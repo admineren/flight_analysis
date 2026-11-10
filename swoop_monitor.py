@@ -297,6 +297,10 @@ def check_deals():
     print("--- Swoop Deals Başladı ---")
     max_retries = 3
     
+    # Cache durumunu kontrol et (ilk çalıştırma mı?)
+    cache_exists = os.path.exists(DEALS_STATE_FILE) and os.path.getsize(DEALS_STATE_FILE) > 100
+    print(f"  Cache durumu: {'Mevcut' if cache_exists else 'Yok (ilk çalıştırma)'}")
+    
     for attempt in range(max_retries):
         try:
             print(f"  Google Flights'tan fırsatlar çekiliyor (Deneme {attempt+1}/{max_retries})...")
@@ -307,40 +311,57 @@ def check_deals():
                 return 0
 
             print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...")
-            diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
+            
+            # Cache yoksa ilk çalıştırma gibi davran (sessiz), varsa normal diff yap
+            if not cache_exists:
+                diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
+                print(f"  İlk kayıt yapıldı ({len(diff.new)} deal). Bildirim gönderilmiyor.")
+                return 0
+            
+            diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=False)
             
             print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}")
             alerts = 0
 
+            # 1. YENİ DEAL'LER
             for d in diff.new:
                 ok, label = _deal_passes_filters(d)
                 if ok and alerts < MAX_NOTIFY:
                     send_telegram(_format_deal_msg(d, label))
-                    print(f"    ✅ Bildirim gönderildi: {d.destination_city} ({label})")
+                    print(f"    ✅ YENİ: {d.destination_city} ({label})")
                     alerts += 1
 
+            # 2. FİYAT DEĞİŞİMLERİ (SADECE DÜŞÜŞLER)
             for pc in diff.price_changes:
                 d = getattr(pc, "deal", None) or getattr(pc, "current", None)
                 if not d: continue
+                
+                old_p = getattr(pc, "old_price", None) or getattr(pc, "prior_price", None)
+                new_p = getattr(pc, "new_price", None) or d.price
+                
+                # SADECE DÜŞÜŞLERİ BİLDİR (artışları yoksay)
+                if not old_p or not new_p or new_p >= old_p:
+                    continue
+                
                 ok, label = _deal_passes_filters(d)
                 if ok and alerts < MAX_NOTIFY:
-                    old_p = getattr(pc, "old_price", None)
-                    extra = f"📉 Önceki: {_price_display(old_p, d.currency)}" if old_p and old_p > d.price else ""
+                    drop_pct = (old_p - new_p) / old_p * 100
+                    extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
                     send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
-                    print(f"    📉 Fiyat düşüşü bildirildi: {d.destination_city}")
+                    print(f"    📉 DÜŞÜŞ: {d.destination_city} ({old_p:,} → {new_p:,})")
                     alerts += 1
 
             print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---")
-            return alerts # Başarılı olduysa döngüden çık
+            return alerts
             
         except Exception as e:
             err_msg = str(e)
             if "gRPC status 13" in err_msg or "INTERNAL" in err_msg:
                 if attempt < max_retries - 1:
-                    print(f"  ⚠️ Google geçici hata verdi. 10 saniye beklenip tekrar denenecek...")
+                    print(f"  ⚠️ Google geçici hata. 10 saniye bekleniyor...")
                     time.sleep(10)
                 else:
-                    print(f"--- Swoop Deals HATA: Google rate limit aşıldı, bu çalıştırma atlanıyor. ---")
+                    print(f"--- Swoop Deals HATA: Rate limit, atlanıyor. ---")
                     return 0
             else:
                 print(f"--- Swoop Deals HATA: {err_msg} ---")
