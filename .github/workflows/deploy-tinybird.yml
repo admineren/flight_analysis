@@ -11,13 +11,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}   # Örn: https://api.tinybird.co
-      TINYBIRD_TOKEN: ${{ secrets.TINYBIRD_TOKEN }} # Workspace Admin Token
+      TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
+      TINYBIRD_TOKEN: ${{ secrets.TINYBIRD_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Tinybird CLI
         run: curl https://tinybird.co | sh
+
+      - name: Add Tinybird CLI to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Deploy to Tinybird Cloud
         run: tb --cloud --host ${{ env.TINYBIRD_HOST }} --token ${{ env.TINYBIRD_TOKEN }} deploy
