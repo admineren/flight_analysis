@@ -2,17 +2,15 @@ import os
 import json
 import requests
 import time
-from datetime import datetime, timezone
-from viajante import get_flights
+from datetime import datetime, timezone, date
+from viajante import get_flights, RoundTrip
 
-# Tinybird Ayarları
 TB_HOST = os.environ.get("TINYBIRD_HOST", "https://api.tinybird.co")
 TB_INGEST_TOKEN = os.environ["TB_INGEST_TOKEN"]
 TB_DATASOURCE = "price_history"
 
 STATE_FILE = "price_collector_state.json"
 
-# İzlenecek Rotalar
 WATCHLIST = [
     {"origin": "IST", "dest": "BKK", "depart": "2027-02-15", "ret": "2027-02-22"},
     {"origin": "IST", "dest": "DPS", "depart": "2027-03-10", "ret": "2027-03-17"},
@@ -21,16 +19,21 @@ WATCHLIST = [
 
 def load_state():
     if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
     return {}
 
 def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    try:
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"State kaydedilemedi: {e}")
 
 def send_to_tinybird(payloads):
-    """Events API'ye NDJSON formatında veri gönderir."""
     if not payloads:
         return
     
@@ -39,7 +42,6 @@ def send_to_tinybird(payloads):
         "Authorization": f"Bearer {TB_INGEST_TOKEN}",
         "Content-Type": "application/x-ndjson"
     }
-    # Tinybird NDJSON bekler (her satır bir JSON objesi)
     data = "\n".join(json.dumps(p) for p in payloads)
     
     try:
@@ -55,65 +57,68 @@ def main():
     print(f"=== Price Collector Başladı: {datetime.now(timezone.utc).isoformat()} ===")
     state = load_state()
     payloads = []
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S") # Tinybird DateTime formatı
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     for route in WATCHLIST:
         route_id = f"{route['origin']}-{route['dest']}-{route['depart']}"
         print(f"[{route_id}] Sorgulanıyor...")
         
-        try:
-            # Gidiş-dönüş arama (RoundTrip)
-            query = f"{route['origin']}-{route['dest']}:{route['depart']}"
-            report = get_flights(
-                query, 
-                trip="rt", # Gidiş dönüş
-                return_date=route['ret'],
-                fetch="sweep", 
-                top=1, 
-                currency="TRY"
-            )
+        trip = RoundTrip(
+            origin=route["origin"],
+            destination=route["dest"],
+            departure_date=date.fromisoformat(route["depart"]),
+            return_date=date.fromisoformat(route["ret"]),
+            max_stops=1,
+        )
+        
+        success = False
+        for attempt in range(3): # 3 kez dene
+            try:
+                report = get_flights(trip, fetch="sweep", top=1, currency="TRY")
+                if report.queries and report.queries[0].status == "ok" and report.queries[0].offers:
+                    best = report.queries[0].offers[0]
+                    price = best.price
+                    airline = best.airline
+                    
+                    last_price = state.get(route_id, {}).get("price")
+                    if price == last_price:
+                        print(f"  ⏭️ Fiyat değişmedi ({price} TRY).")
+                    else:
+                        payloads.append({
+                            "origin": route["origin"],
+                            "destination": route["dest"],
+                            "departure_date": route["depart"],
+                            "return_date": route["ret"],
+                            "airline": airline,
+                            "price": price,
+                            "currency": "TRY",
+                            "source": "viajante",
+                            "observed_at": now_str
+                        })
+                        state[route_id] = {"price": price, "updated_at": now_str}
+                        print(f"  📉 Yeni fiyat: {price} TRY ({airline})")
+                    success = True
+                    break # Başarılıysa döngüden çık
+                    
+                else:
+                    err = getattr(report.queries[0].error, 'code', 'unknown') if report.queries else 'no_query'
+                    print(f"  ⚠️ Sonuç yok/Hata (Deneme {attempt+1}/3): {err}")
+                    if err == "blocked":
+                        time.sleep(30) # Rate limit için bekle
+            except Exception as e:
+                print(f"  ❌ Viajante hatası (Deneme {attempt+1}/3): {str(e)[:100]}")
+                time.sleep(10)
+        
+        if not success:
+            print(f"  ❌ {route_id} atlandı (3 denemede başarısız).")
             
-            if report.queries and report.queries[0].status == "ok" and report.queries[0].offers:
-                best_offer = report.queries[0].offers[0]
-                price = best_offer.price
-                airline = best_offer.airline
-                
-                # Duplicate kontrolü (Eğer fiyat aynıysa DB'ye yazma)
-                last_price = state.get(route_id, {}).get("price")
-                if price == last_price:
-                    print(f"  ⏭️ Fiyat değişmedi ({price} TRY). Kaydedilmedi.")
-                    continue
-                
-                # Yeni kayıt oluştur
-                payloads.append({
-                    "origin": route["origin"],
-                    "destination": route["dest"],
-                    "departure_date": route["depart"],
-                    "return_date": route["ret"],
-                    "airline": airline,
-                    "price": price,
-                    "currency": "TRY",
-                    "source": "viajante",
-                    "observed_at": now_str
-                })
-                state[route_id] = {"price": price, "updated_at": now_str}
-                print(f"  📉 Yeni fiyat: {price} TRY ({airline})")
-                
-            else:
-                err = getattr(report.queries[0].error, 'code', 'unknown') if report.queries else 'no_query'
-                print(f"  ⚠️ Sonuç yok/Hata: {err}")
-                
-        except Exception as e:
-            print(f"  ❌ Viajante hatası: {str(e)[:100]}")
-            
-        time.sleep(5) # Rate limit koruması
+        time.sleep(10) # Rotolar arası bekleme
 
-    # Tinybird'e gönder
     if payloads:
         send_to_tinybird(payloads)
-        save_state(state)
-    else:
-        print("\nGönderilecek yeni veri yok.")
+    save_state(state) # Hata olsa bile state'i kaydet
+    
+    print("=== İşlem Tamamlandı ===")
 
 if __name__ == "__main__":
     main()
