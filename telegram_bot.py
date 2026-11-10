@@ -281,16 +281,14 @@ def cmd_ara(args):
             display_count += 1
 
             lines.append(f"<b>{display_count}. {o.airline}</b> — <b>{o.price_text}</b>")
-            
             lines.append(f"   🕐 {o.departure or '?'} → {o.arrival or '?'}")
-
+            
             details = flight_details(o)
             if details:
                 flight_s = _fmt_duration(details["flight_mins"])
                 total_s = _fmt_duration(details["total_mins"])
                 
                 if details["flight_mins"] and details["total_mins"]:
-                    # Bekleme varsa göster
                     wait_total = details["total_mins"] - details["flight_mins"]
                     if wait_total > 30:
                         lines.append(f"   ⏱️ Uçuş: {flight_s} | Toplam: {total_s} (bekleme dahil)")
@@ -299,7 +297,6 @@ def cmd_ara(args):
                 else:
                     lines.append(f"   ⏱️ {o.duration or '?'}")
                 
-                # Aktarma detayları
                 if details["layovers"]:
                     stops_label = o.stops or f"{len(details['layovers'])} aktarma"
                     lay_strs = []
@@ -312,17 +309,14 @@ def cmd_ara(args):
             else:
                 lines.append(f"   ⏱️ {o.duration or '?'} | ✈️ {o.stops or '?'}")
 
-            # Bagaj
             bag = format_baggage(o)
             if bag:
                 lines.append(f"   {bag}")
 
-            # Fiyat seviyesi
             vs = format_vs_typical(o.vs_typical_pct)
             if vs:
                 lines.append(f"   {vs}")
 
-            # Link
             if o.google_flights_url:
                 lines.append(f"   🔗 <a href='{o.google_flights_url}'>Google Flights</a>")
             lines.append("")
@@ -330,10 +324,14 @@ def cmd_ara(args):
         if q.price_insight:
             pi = q.price_insight
             lines.append(f"{level_emoji} <b>Seviye: {level_text}</b>")
+            if pi.lowest:
+                lines.append(f"   💰 En düşük: {pi.lowest:,.0f} TRY")
             if pi.typical_range:
                 lo, hi = pi.typical_range
                 lines.append(f"   📊 Tipik aralık: {lo:,.0f} - {hi:,.0f} TRY")
-                lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+
+        # 🛂 Vize durumu (Doğru girinti: 8 boşluk)
+        lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
 
         return "\n".join(lines)
     except Exception as e:
@@ -351,7 +349,6 @@ def cmd_esnek(args):
         return "❌ Tarih veya gün formatı hatalı."
 
     try:
-        # Gidiş-dönüş (7 gece) esnek arama
         report = search_flex(
             origin=origin, destination=dest,
             around=target_date, flex_days=flex_days,
@@ -372,8 +369,12 @@ def cmd_esnek(args):
             vs = format_vs_typical(pct)
             if vs: lines.append(f"     {vs}")
 
-        if report.typical: lines.append(f"\n📊 Tipik fiyat: {report.typical:,.0f} TRY")
-            lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+        if report.typical: 
+            lines.append(f"\n📊 Tipik fiyat: {report.typical:,.0f} TRY")
+        
+        # 🛂 Vize durumu (Doğru girinti: 8 boşluk)
+        lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
+
         return "\n".join(lines)
     except Exception as e:
         return f"❌ Esnek tarama hatası: {str(e)[:120]}"
