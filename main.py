@@ -1,47 +1,16 @@
 import os
 import json
-import hashlib
-import html
 import re
-import feedparser
 import requests
 from bs4 import BeautifulSoup
 
-# --- Kaynaklar ---
-FEEDS = {
-    "theflightdeal": "https://www.theflightdeal.com/feed/",
-    "fly4free": "https://www.fly4free.pl/feed/",
-    "faredealalert": "https://faredealalert.com/feed/",
-    "holidaypirates": "https://www.holidaypirates.com/feed",
-    "thriftytraveler": "https://thriftytraveler.com/feed/",
-    "reddit_awardtravel": "https://www.reddit.com/r/awardtravel/.rss",
-}
-
-SOURCE_LABELS = {
-    "theflightdeal": "The Flight Deal",
-    "fly4free": "Fly4Free",
-    "faredealalert": "Fare Deal Alert",
-    "holidaypirates": "Holiday Pirates",
-    "thriftytraveler": "Thrifty Traveler",
-    "reddit_awardtravel": "Reddit r/awardtravel",
-}
-
-SEEN_FILE = "seen.json"
+# --- Ucuza Uç Kaynağı ---
+UCUZAUC_URL = "https://www.ucuzauc.org/kalkis/istanbul"
 UCUZAUC_STATE_FILE = "ucuzauc_state.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-KEYWORDS_SUBSTR = ["istanbul", "sabiha", "stambuł"]
-HOTEL_PACKAGE_WORDS = [
-    "hotel", "otel", "resort", "all-inclusive", "all inclusive",
-    "package", "paket", "villa", "apartment", "cruise",
-    "holiday break", "tatil", "konaklama", "accommodation",
-]
-FLIGHT_WORDS = [
-    "flight", "fly", "airline", "airfare",
-    "uçuş", "bilet", "ticket", "one-way", "roundtrip", "round-trip",
-]
 MAX_NOTIFY = 5
 
 HEADERS = {
@@ -50,14 +19,8 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/rss+xml, application/xml, text/xml, */*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9,tr;q=0.8",
-    "Cache-Control": "no-cache",
+    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
 }
-REQUEST_TIMEOUT = 20
-
-UCUZAUC_URL = "https://www.ucuzauc.org/kalkis/istanbul"
-
 
 # ============================================================
 # STATE YÖNETİMİ
@@ -83,15 +46,6 @@ def _save_json_state(path, data):
     os.replace(tmp, path)
 
 
-def load_seen():
-    data = _load_json_state(SEEN_FILE)
-    return {s: set(ids) for s, ids in data.items() if isinstance(ids, list)}
-
-
-def save_seen(seen):
-    _save_json_state(SEEN_FILE, {s: sorted(list(ids)) for s, ids in seen.items()})
-
-
 def load_ucuzauc_state():
     return _load_json_state(UCUZAUC_STATE_FILE)
 
@@ -111,48 +65,6 @@ def send_telegram(text):
             print("Telegram error:", r.status_code, r.text)
     except Exception as e:
         print("Telegram exception:", e)
-
-
-# ============================================================
-# RSS KATMANI
-# ============================================================
-def matches_istanbul(haystack):
-    text = haystack.lower()
-    has_hotel = any(w in text for w in HOTEL_PACKAGE_WORDS)
-    has_flight = any(w in text for w in FLIGHT_WORDS)
-    if has_hotel and not has_flight:
-        return False
-    if any(k in text for k in KEYWORDS_SUBSTR):
-        return True
-    if re.search(r"\bIST\b", haystack, re.IGNORECASE):
-        return True
-    if re.search(r"\bSAW\b", haystack):
-        return True
-    return False
-
-
-def fetch_feed(url):
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-        if resp.status_code == 200:
-            feed = feedparser.parse(resp.content)
-            if feed.entries:
-                return feed, f"HTTP 200 ({len(feed.entries)} entries)"
-            return feed, "HTTP 200 ama boş içerik"
-        if resp.status_code in (403, 503):
-            return None, f"HTTP {resp.status_code} (bot koruması)"
-        return None, f"HTTP {resp.status_code}"
-    except requests.exceptions.RequestException as e:
-        print(f"  requests error: {e}")
-        try:
-            feed = feedparser.parse(url, agent=HEADERS["User-Agent"])
-            if feed.entries:
-                return feed, f"fallback ({len(feed.entries)} entries)"
-            return feed, "fallback boş"
-        except Exception as e2:
-            print(f"  feedparser fallback error: {e2}")
-            return None, "bağlantı hatası"
-
 
 # ============================================================
 # UCUZA UÇ KATMANI
@@ -376,92 +288,9 @@ def check_ucuzauc_all():
 # ANA AKIŞ
 # ============================================================
 def main():
-    first_run = not os.path.exists(SEEN_FILE)
-    seen = load_seen()
-
-    total_entries = 0
-    total_matched = 0
-    new_items = []
-    source_stats = {}
-    source_status = {}
-
-    for source, url in FEEDS.items():
-        feed, status = fetch_feed(url)
-        source_status[source] = status
-
-        if feed is None or not feed.entries:
-            print(f"[{source}] okunamadı: {status}")
-            source_stats[source] = 0
-            continue
-
-        entries = feed.entries
-        source_stats[source] = len(entries)
-        total_entries += len(entries)
-        print(f"[{source}] {status}")
-
-        source_seen = seen.setdefault(source, set())
-
-        for entry in entries:
-            title = entry.get("title", "")
-            link = entry.get("link", "")
-            summary = entry.get("summary", "")
-            haystack = f"{title} {summary}"
-
-            if source == "reddit_awardtravel":
-                tags = entry.get("tags", [])
-                tag_terms = [t.get("term", "").lower() for t in tags]
-                if not any("deal" in term for term in tag_terms):
-                    continue
-
-            if not matches_istanbul(haystack):
-                continue
-
-            total_matched += 1
-            item_id = link if link else hashlib.md5(title.encode("utf-8")).hexdigest()
-            if item_id in source_seen:
-                continue
-
-            source_seen.add(item_id)
-            new_items.append((source, title, link))
-
+    print("=== Ucuza Uç Monitor Başladı ===")
     check_ucuzauc_all()
-
-    if first_run:
-        if new_items:
-            by_source = {}
-            for src, _, _ in new_items:
-                by_source[src] = by_source.get(src, 0) + 1
-            breakdown = ", ".join(
-                f"{SOURCE_LABELS.get(s, s)}: {c}" for s, c in by_source.items()
-            )
-            send_telegram(
-                f"✅ Sistem kuruldu. Toplam {len(new_items)} İstanbul fırsatı "
-                f"bulundu ({breakdown}); 'görüldü' işaretlendi. Yenilerde haber vereceğim."
-            )
-        else:
-            send_telegram(
-                "✅ Sistem kuruldu ve çalışıyor. Şu an hiçbir kaynakta İstanbul "
-                "çıkışlı fırsat yok. Yeni fırsat çıkınca haber vereceğim."
-            )
-    else:
-        for source, title, link in new_items[:MAX_NOTIFY]:
-            label = SOURCE_LABELS.get(source, source)
-            safe_title = html.escape(title)
-            send_telegram(f"✈️ <b>[{label}]</b> {safe_title}\n{link}")
-        if len(new_items) > MAX_NOTIFY:
-            send_telegram(
-                f"ℹ️ Toplam {len(new_items)} yeni fırsat var; "
-                f"ilk {MAX_NOTIFY} tanesi gönderildi."
-            )
-
-    save_seen(seen)
-
-    print("=" * 60)
-    print(f"Feeds: {len(FEEDS)}, entries: {total_entries}, "
-          f"matched: {total_matched}, new: {len(new_items)}")
-    print("Per-source entries:", source_stats)
-    print("Per-source status:", source_status)
-    print("Sources in seen:", sorted(seen.keys()))
+    print("=== Tamamlandı ===")
 
 
 if __name__ == "__main__":
