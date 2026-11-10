@@ -105,7 +105,7 @@ def load_visa_data():
             if codes_str:
                 VISA_MAP[color] = set(c.strip() for c in codes_str.split(",") if c.strip())
         
-        print(f"Vize verisi yüklendi. (Güncelleme: {VISA_DATA.get('fetched_at', '?')[:10]})")
+        print(f"Vize verisi yüklendi. (Güncelleme: {VISA_DATA.get('meta', {}).get('generated_at', '?')[:10]})")
     except Exception as e:
         print(f"Vize verisi yüklenemedi: {e}")
 
