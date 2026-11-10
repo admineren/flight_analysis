@@ -1,0 +1,11 @@
+NODE latest_price_node
+SQL >
+    SELECT price, airline, observed_at
+    FROM price_history
+    WHERE origin = {{ String(origin) }}
+      AND destination = {{ String(destination) }}
+      AND departure_date = {{ String(departure_date) }}
+    ORDER BY observed_at DESC
+    LIMIT 1
+
+TYPE ENDPOINT
