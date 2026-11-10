@@ -53,8 +53,10 @@ def send_message(text):
             "chat_id": CHAT_ID, "text": text,
             "parse_mode": "HTML", "disable_web_page_preview": True,
         }, timeout=15)
-        if r.status_code != 200:
-            print(f"⚠️ Telegram mesaj hatası: {r.text[:200]}", flush=True)
+        if r.status_code == 200:
+            print(f"📤 Mesaj gönderildi ({len(text)} karakter)", flush=True)
+        else:
+            print(f"⚠️ Telegram mesaj hatası: {r.status_code} {r.text[:150]}", flush=True)
     except Exception as e:
         print(f"❌ Mesaj gönderilemedi: {e}", flush=True)
 
@@ -397,38 +399,37 @@ def process_command(text):
 # ============================================================
 # MAIN
 # ============================================================
-def main():
-    print("🎯 [5] main() başladı...", flush=True)
-    state = load_state()
-    offset = state.get("last_update_id", 0) + 1
-    print(f"🔄 [6] Dinleme başladı (offset: {offset})", flush=True)
-    url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
-    try:
-        r = requests.get(url, params={"offset": offset, "timeout": 55, "limit": 10}, timeout=65)
-        print(f"📥 [7] Telegram yanıtı: {r.status_code}", flush=True)
-        updates = r.json().get("result", [])
-        print(f"📨 [8] Yeni mesaj: {len(updates)}", flush=True)
-        if not updates:
-            print("💤 [9] Yeni mesaj yok.", flush=True)
-            return
-        for upd in updates:
-            state["last_update_id"] = upd["update_id"]
-            msg = upd.get("message", {})
-            if str(msg.get("chat", {}).get("id")) != str(CHAT_ID):
-                print("⚠️ [10] Yabancı chat atlandı", flush=True)
+try:
+    r = requests.get(url, params={"offset": offset, "timeout": 55, "limit": 10}, timeout=65)
+    print(f"📥 [7] Telegram yanıtı: {r.status_code}", flush=True)
+    updates = r.json().get("result", [])
+    print(f"📨 [8] Yeni mesaj: {len(updates)}", flush=True)
+    if not updates:
+        print("💤 [9] Yeni mesaj yok.", flush=True)
+        return
+    
+    processed_texts = set()  # aynı batch içinde dedup için
+    
+    for upd in updates:
+        state["last_update_id"] = upd["update_id"]
+        msg = upd.get("message", {})
+        
+        if str(msg.get("chat", {}).get("id")) != str(CHAT_ID):
+            print("⚠️ [10] Yabancı chat atlandı", flush=True)
+            continue
+        
+        text = msg.get("text", "")
+        if text.startswith("/"):
+            if text in processed_texts:
+                print(f"⏭️ [10b] Mükerrer atlandı: {text}", flush=True)
                 continue
-            text = msg.get("text", "")
-            if text.startswith("/"):
-                print(f"💬 [11] Komut: {text}", flush=True)
-                reply = process_command(text)
-                if reply:
-                    send_message(reply)
-        save_state(state)
-        print(f"💾 [12] State kaydedildi (id: {state['last_update_id']})", flush=True)
-    except Exception as e:
-        print(f"❌ [13] Bot hatası: {e}", flush=True)
-
-print("🏁 [14] main() çağrılıyor...", flush=True)
-if __name__ == "__main__":
-    main()
-print("🏁 [15] Bitti.", flush=True)
+            processed_texts.add(text)
+            print(f"💬 [11] Komut: {text}", flush=True)
+            reply = process_command(text)
+            if reply:
+                send_message(reply)
+    
+    save_state(state)
+    print(f"💾 [12] State kaydedildi (id: {state['last_update_id']})", flush=True)
+except Exception as e:
+    print(f"❌ [13] Bot hatası: {e}", flush=True)
