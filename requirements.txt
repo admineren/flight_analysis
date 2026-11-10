@@ -1,2 +1,3 @@
 viajante
 requests
+tzdata
