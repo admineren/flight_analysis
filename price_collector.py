@@ -35,7 +35,7 @@ def save_state(state):
 
 def send_to_tinybird(payloads):
     if not payloads:
-        return
+        return False
     
     url = f"{TB_HOST}/v0/events?name={TB_DATASOURCE}"
     headers = {
@@ -48,10 +48,13 @@ def send_to_tinybird(payloads):
         r = requests.post(url, headers=headers, data=data, timeout=15)
         if r.status_code == 202:
             print(f"✅ {len(payloads)} fiyat Tinybird'e gönderildi.")
+            return True
         else:
             print(f"❌ Tinybird Hatası: {r.status_code} - {r.text[:200]}")
+            return False
     except Exception as e:
         print(f"❌ Tinybird bağlantı hatası: {e}")
+        return False
 
 def main():
     print(f"=== Price Collector Başladı: {datetime.now(timezone.utc).isoformat()} ===")
@@ -72,7 +75,7 @@ def main():
         )
         
         success = False
-        for attempt in range(3): # 3 kez dene
+        for attempt in range(3):
             try:
                 report = get_flights(trip, fetch="sweep", top=1, currency="TRY")
                 if report.queries and report.queries[0].status == "ok" and report.queries[0].offers:
@@ -95,16 +98,16 @@ def main():
                             "source": "viajante",
                             "observed_at": now_str
                         })
-                        state[route_id] = {"price": price, "updated_at": now_str}
+                        # state güncellemesini buradan kaldırdık! (Aşağıda yapacağız)
                         print(f"  📉 Yeni fiyat: {price} TRY ({airline})")
                     success = True
-                    break # Başarılıysa döngüden çık
+                    break 
                     
                 else:
                     err = getattr(report.queries[0].error, 'code', 'unknown') if report.queries else 'no_query'
                     print(f"  ⚠️ Sonuç yok/Hata (Deneme {attempt+1}/3): {err}")
                     if err == "blocked":
-                        time.sleep(30) # Rate limit için bekle
+                        time.sleep(30)
             except Exception as e:
                 print(f"  ❌ Viajante hatası (Deneme {attempt+1}/3): {str(e)[:100]}")
                 time.sleep(10)
@@ -112,13 +115,17 @@ def main():
         if not success:
             print(f"  ❌ {route_id} atlandı (3 denemede başarısız).")
             
-        time.sleep(10) # Rotolar arası bekleme
+        time.sleep(10)
 
+    # Tinybird'e gönder ve BAŞARILI OLURSA state'i güncelle
     if payloads:
-        send_to_tinybird(payloads)
-    save_state(state) # Hata olsa bile state'i kaydet
-    
+        if send_to_tinybird(payloads):
+            # Sadece başarılıysa state'i güncelle
+            for p in payloads:
+                r_id = f"{p['origin']}-{p['destination']}-{p['departure_date']}"
+                state[r_id] = {"price": p["price"], "updated_at": p["observed_at"]}
+            save_state(state)
+    else:
+        print("\nGönderilecek yeni veri yok.")
+        
     print("=== İşlem Tamamlandı ===")
-
-if __name__ == "__main__":
-    main()
