@@ -1,3 +1,5 @@
+TOKEN price_ingest_token APPEND
+
 SCHEMA >
     `origin` String,
     `destination` String,
