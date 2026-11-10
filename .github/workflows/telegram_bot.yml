@@ -9,7 +9,7 @@ permissions:
 jobs:
   bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # 5 dakikada bitmezse zorla kapat
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
