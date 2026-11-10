@@ -507,33 +507,43 @@ def process_command(text):
 def main():
     state = load_state()
     offset = state.get("last_update_id", 0) + 1
-    print(f"🔄 Dinleme başladı (offset: {offset})", flush=True)
+    url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
     
+    # İLK ÇALIŞTIRMA KORUMASI: state yoksa, mevcut tüm bekleyen mesajları yoksay
+    if not os.path.exists(STATE_FILE) or state.get("last_update_id", 0) == 0:
+        print("🆕 İlk çalıştırma: bekleyen eski mesajlar yoksayılacak", flush=True)
+        try:
+            r = requests.get(url, params={"offset": -1}, timeout=10)
+            updates = r.json().get("result", [])
+            if updates:
+                last_id = updates[-1]["update_id"]
+                state["last_update_id"] = last_id
+                save_state(state)
+                print(f"✅ Offset ayarlandı: {last_id}. Sonraki komutlar dinlenecek.", flush=True)
+        except Exception as e:
+            print(f"❌ İlk çalıştırma hatası: {e}", flush=True)
+        return
+    
+    print(f"🔄 Dinleme (offset: {offset})", flush=True)
     try:
-        r = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates", params={"offset": offset, "timeout": 55}, timeout=65)
+        r = requests.get(url, params={"offset": offset, "timeout": 55, "limit": 10}, timeout=65)
         updates = r.json().get("result", [])
         print(f"📨 Yeni mesaj: {len(updates)}", flush=True)
         
         if not updates:
-            print("💤 Yeni mesaj yok.", flush=True)
             return
-
+        
         for upd in updates:
             state["last_update_id"] = upd["update_id"]
             msg = upd.get("message", {})
-            
             if str(msg.get("chat", {}).get("id")) != str(CHAT_ID):
-                continue # Yabancı mesajları yoksay
-            
+                continue
             text = msg.get("text", "")
             if text.startswith("/"):
                 print(f"💬 Komut: {text}", flush=True)
                 reply = process_command(text)
                 if reply: send_message(reply)
-                
+        
         save_state(state)
     except Exception as e:
         print(f"❌ Bot hatası: {e}", flush=True)
-
-if __name__ == "__main__":
-    main()
