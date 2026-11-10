@@ -8,6 +8,7 @@ import requests
 from datetime import datetime, timezone, date, timedelta
 from zoneinfo import ZoneInfo
 from collections import defaultdict
+from visa_helper import get_visa_by_iata
 
 print("📦 Kütüphaneler yükleniyor (viajante)...", flush=True)
 try:
@@ -332,6 +333,7 @@ def cmd_ara(args):
             if pi.typical_range:
                 lo, hi = pi.typical_range
                 lines.append(f"   📊 Tipik aralık: {lo:,.0f} - {hi:,.0f} TRY")
+                lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
 
         return "\n".join(lines)
     except Exception as e:
@@ -371,6 +373,7 @@ def cmd_esnek(args):
             if vs: lines.append(f"     {vs}")
 
         if report.typical: lines.append(f"\n📊 Tipik fiyat: {report.typical:,.0f} TRY")
+            lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
         return "\n".join(lines)
     except Exception as e:
         return f"❌ Esnek tarama hatası: {str(e)[:120]}"
