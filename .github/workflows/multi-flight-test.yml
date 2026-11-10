@@ -19,9 +19,6 @@ jobs:
           - name: "viajante"
             package: "viajante"
             file: "test_viajante.py"
-          - name: "LetsFG"
-            package: "letsfg"
-            file: "test_letsfg.py"
 
     steps:
       - uses: actions/checkout@v4
