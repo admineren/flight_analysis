@@ -2,11 +2,8 @@ name: Vize Verisi Güncelleyici
 
 on:
   schedule:
-    # Her Pazartesi sabahı 06:00'da (Türkiye saatiyle) çalışır.
-    # UTC 03:00 = TSİ 06:00
+    # Her Pazartesi sabahı 06:00 (Türkiye saatiyle)
     - cron: "0 3 * * 1"
-  
-  # İstediğiniz an manuel çalıştırmak için
   workflow_dispatch: {}
 
 permissions:
@@ -40,7 +37,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add visa_data.json
+          git add data/visa_data.json
           git commit -m "update visa data [skip ci]" || echo "no changes"
           git pull --rebase origin main || true
           git push
