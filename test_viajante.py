@@ -1,24 +1,33 @@
-from viajante import get_flights
+import time
+from viajante import get_flights, search_dates
 
-print("viajante test ediliyor...")
-report = get_flights("IST-BCN:2027-01-15", fetch="sweep", top=5)
+print("=" * 70)
+print("VIAJANTE DETAYLI PARAMETRE VE HATA ANALİZİ")
+print("=" * 70)
 
-print(f"Dönen Nesne Tipi: {type(report)}")
-print(f"Mevcut Özellikler (Attributes): {[a for a in dir(report) if not a.startswith('_')]}")
+# 1. search_dates: Bir ay içindeki en ucuz tarihler
+print("\n--- search_dates: IST-BCN, Ocak 2027 ---")
+try:
+    report = search_dates("IST-BCN", "2027-01-01", "2027-01-31", top=3)
+    for q in report.queries:
+        if q.status == "ok":
+            print(f"  En ucuz tarih: {q.date} -> {q.offers[0].price} {report.currency}")
+        else:
+            print(f"  Sorgu hatası: status={q.status}, empty_reason={getattr(q, 'empty_reason', None)}")
+except Exception as e:
+    print(f"  search_dates hatası: {type(e).__name__}: {e}")
 
-# Muhtemel sonuç listesi özelliklerini kontrol et
-if hasattr(report, "results"):
-    print(f"\nToplam Sonuç: {len(report.results)}")
-    for r in report.results[:3]:
-        print(f"  {r}")
-elif hasattr(report, "offers"):
-    print(f"\nToplam Teklif: {len(report.offers)}")
-    for o in report.offers[:3]:
-        print(f"  {o}")
-elif hasattr(report, "flights"):
-    print(f"\nToplam Uçuş: {len(report.flights)}")
-    for f in report.flights[:3]:
-        print(f"  {f}")
-else:
-    print("\nSonuçlar doğrudan bir listede değil. Tüm nesne içeriği:")
-    print(report)
+time.sleep(5)
+
+# 2. Hata nesnesini doğru alanlarla yakalamak
+print("\n--- Hata Yapısı Analizi (Bilerek BLOCKED tetikleme) ---")
+try:
+    report = get_flights("IST-DXB:2027-03-05", fetch="sweep", top=3, currency="EUR")
+    for q in report.queries:
+        if q.status != "ok":
+            print(f"  Durum: {q.status}")
+            print(f"  Boş sebep: {getattr(q, 'empty_reason', 'YOK')}")
+            print(f"  Yeniden deneme: {getattr(q, 'retry_after', 'YOK')}")
+            print(f"  Gözlem zamanı: {getattr(q, 'observed_at', 'YOK')}")
+except Exception as e:
+    print(f"  Beklenen hata: {type(e).__name__}: {e}")
