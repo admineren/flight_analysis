@@ -4,7 +4,7 @@ import requests
 from datetime import datetime, timedelta
 
 DATA_DIR = "data"
-VISA_DATA_FILE = os.path.join(DATA_DIR, "visa_data.json")
+VISA_DATA_FILE = os.path.join("data", "visa_data.json")
 
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 RAPIDAPI_HOST = "visa-requirement.p.rapidapi.com"
