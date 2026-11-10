@@ -188,7 +188,16 @@ def cmd_ara(args):
     origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
     
     try:
-        report = get_flights(f"{origin}-{dest}:{dep}", fetch="sweep", top=3, currency="TRY", deadline_seconds=45)
+        from viajante import RoundTrip
+        # Gidiş-dönüş: 7 gece kalış varsayımı
+        trip = RoundTrip(
+            origin=origin, destination=dest,
+            departure_date=date.fromisoformat(dep),
+            return_date=date.fromisoformat(dep) + timedelta(days=7),
+            max_stops=1,
+        )
+        
+        report = get_flights(trip, fetch="sweep", top=3, currency="TRY", deadline_seconds=45)
         q = report.queries[0] if report.queries else None
         
         if not q or q.status != "ok" or not q.offers:
@@ -202,7 +211,8 @@ def cmd_ara(args):
             level_emoji = {"low": "🟢", "typical": "🟡", "high": "🔴"}.get(level, "⚪")
             level_text = level.upper()
 
-        lines = [f"✈️ <b>{origin} → {dest}</b> ({dep})\n"]
+        # Başlığa gidiş-dönüş bilgisini ekle
+        lines = [f"✈️ <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)\n📅 {dep} → {date.fromisoformat(dep) + timedelta(days=7)}\n"]
 
         for i, o in enumerate(q.offers[:3], 1):
             lines.append(f"<b>{i}. {o.airline}</b> — <b>{o.price_text}</b>")
@@ -247,14 +257,20 @@ def cmd_esnek(args):
         return "❌ Tarih veya gün formatı hatalı."
 
     try:
-        report = search_flex(origin=origin, destination=dest, around=target_date, flex_days=flex_days, currency="TRY", max_stops=1, top=3)
+        # Gidiş-dönüş (7 gece) esnek arama
+        report = search_flex(
+            origin=origin, destination=dest,
+            around=target_date, flex_days=flex_days,
+            trip="rt", nights=7,
+            currency="TRY", max_stops=1, top=3
+        )
         if not report.days: return "⚠️ Esnek tarama sonuç vermedi (BLOCKED olabilir)."
 
         priced = [(d.departure_date, d.price, d.airline, d.stops_count, d.vs_typical_pct) for d in report.days if d.price]
         if not priced: return "📭 Fiyat bilgisi olan gün yok."
         priced.sort(key=lambda x: x[1])
 
-        lines = [f"📅 <b>{origin} → {dest}</b> ({dep_str} ±{flex_days}g)\n", "<b>En ucuz 3 gün:</b>"]
+        lines = [f"📅 <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş, {dep_str} ±{flex_days}g)\n", "<b>En ucuz 3 gün:</b>"]
         for i, (d_date, price, air, stops, pct) in enumerate(priced[:3], 1):
             flag = "🎯" if pct is not None and pct <= -10 else "  "
             lines.append(f"{flag} {i}. <b>{d_date}</b> — <b>{price:,.0f} TRY</b>")
@@ -266,6 +282,7 @@ def cmd_esnek(args):
         return "\n".join(lines)
     except Exception as e:
         return f"❌ Esnek tarama hatası: {str(e)[:120]}"
+
 
 def cmd_takvim(args):
     if len(args) < 4: return "❌ Kullanım: <code>/takvim IST BKK 2027-02-01 2027-04-30</code>"
@@ -289,7 +306,13 @@ def cmd_takvim(args):
     for i, (w_start, w_end) in enumerate(windows):
         print(f"🔍 Dilim {i+1}/{len(windows)}: {w_start} → {w_end}", flush=True)
         try:
-            report = search_dates(origin=origin, destination=dest, start=w_start, end=w_end, currency="TRY", nights=7, max_stops=1)
+            # Gidiş-dönüş (7 gece) aylık tarama
+            report = search_dates(
+                origin=origin, destination=dest,
+                start=w_start, end=w_end,
+                trip="rt", nights=7,
+                currency="TRY", max_stops=1
+            )
             if report.days:
                 priced = [(d.departure_date, d.price, d.airline) for d in report.days if d.price]
                 if priced:
@@ -300,7 +323,7 @@ def cmd_takvim(args):
             print(f"  ❌ Hata: {str(e)[:100]}", flush=True)
         if i < len(windows) - 1:
             print(f"  ⏳ 25 saniye bekleniyor (rate limit)...", flush=True)
-            time.sleep(25)  # 10 → 25 saniye
+            time.sleep(25) # Bekleme süresini 25'e çıkardık
     
     if not results:
         return (
@@ -314,7 +337,7 @@ def cmd_takvim(args):
     by_month = defaultdict(list)
     for m, p, d, a in results: by_month[m].append((p, d, a))
     
-    lines = [f"📅 <b>{origin} → {dest}</b>", f"({start_str} — {end_str})\n"]
+    lines = [f"📅 <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)", f"({start_str} — {end_str})\n"]
     overall_best = None
     month_names = {"01":"Ocak","02":"Şubat","03":"Mart","04":"Nisan","05":"Mayıs","06":"Haziran","07":"Temmuz","08":"Ağustos","09":"Eylül","10":"Ekim","11":"Kasım","12":"Aralık"}
 
