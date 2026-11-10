@@ -1,9 +1,14 @@
 import os
 import json
+import re
 import time
 from datetime import datetime, timedelta, timezone
 
-from swoop import search as swoop_search, deals, watch_deals, set_country
+from swoop import (
+    search as swoop_search,
+    deals, watch_deals, set_country,
+    TransportConfig,
+)
 
 SEARCH_STATE_FILE = "swoop_search_state.json"
 DEALS_STATE_FILE = "swoop_deals_state.json"
@@ -11,8 +16,8 @@ DEALS_STATE_FILE = "swoop_deals_state.json"
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# NOT: set_country("TR") her çalıştırmada çağrılır → tüm fiyatlar TL cinsinden gelir
-# USD_TO_TL sabiti artık gereksiz
+# Global kur — main() içinde doldurulur (TCMB'den veya fallback)
+USD_TO_TL = 50.0
 
 # --- Sadece vizesiz rotalar ---
 GOOGLE_FLIGHTS_WATCH = [
@@ -23,45 +28,80 @@ GOOGLE_FLIGHTS_WATCH = [
 ]
 
 # --- Deals filtre kuralları ---
-DEALS_MIN_DISCOUNT_PCT = 40          # %40+ → her bölgeden bildir
-DEALS_ASIA_MIN_DISCOUNT_PCT = 25     # Asya %25+ → bildir
-DEALS_MAX_PRICE_TL = 40000           # 40.000 TL üstü deal'leri ele (≈$800)
+DEALS_MIN_DISCOUNT_PCT = 40
+DEALS_ASIA_MIN_DISCOUNT_PCT = 25
+DEALS_MAX_PRICE_TL = 40000
 
 MAX_NOTIFY = 5
 REQUEST_DELAY = 3
 
 
 # ============================================================
+# KUR ÇEKME (TCMB + fallback)
+# ============================================================
+def get_usd_tl():
+    """TCMB'den USD/TRY çeker. Başarısızsa fallback API'ye, o da olmazsa 50.0 döner."""
+    import requests
+
+    # 1. TCMB (resmi)
+    try:
+        r = requests.get(
+            "https://www.tcmb.gov.tr/kurlar/today.xml",
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        if r.status_code == 200:
+            match = re.search(
+                r'<Currency[^>]*CurrencyCode="USD"[^>]*>.*?'
+                r'<ForexSelling>([\d.]+)</ForexSelling>',
+                r.text, re.DOTALL
+            )
+            if match:
+                rate = float(match.group(1))
+                print(f"  TCMB USD/TRY: {rate}")
+                return rate
+    except Exception as e:
+        print(f"  TCMB hata: {type(e).__name__}")
+
+    # 2. Fallback: exchangerate-api
+    try:
+        r = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            rate = data.get("rates", {}).get("TRY")
+            if rate:
+                print(f"  Fallback USD/TRY: {rate}")
+                return float(rate)
+    except Exception as e:
+        print(f"  Fallback hata: {type(e).__name__}")
+
+    print(f"  Kur çekilemedi, varsayılan: 50.0")
+    return 50.0
+
+
+# ============================================================
 # VİZE FİLTRESİ
 # ============================================================
 VISA_FREE_COUNTRIES = {
-    # Avrupa
     "Georgia", "Azerbaijan", "Serbia", "Bosnia and Herzegovina",
     "Albania", "North Macedonia", "Montenegro", "Kosovo",
     "Moldova", "Belarus", "Ukraine", "Russia",
-    # Orta Asya
     "Kazakhstan", "Kyrgyzstan", "Uzbekistan", "Tajikistan",
-    # Orta Doğu
     "Qatar", "Oman", "Bahrain", "Jordan", "Lebanon", "Iran",
-    # Asya
     "Thailand", "Malaysia", "Singapore", "Indonesia",
     "Philippines", "Maldives", "Sri Lanka", "Vietnam",
     "Cambodia", "Laos", "Nepal",
-    # Afrika
     "Morocco", "Tunisia", "Kenya", "Tanzania", "Ethiopia",
     "South Africa",
-    # Diğer
     "Türkiye", "Turkey", "Cyprus",
 }
 
 VISA_REQUIRED_COUNTRIES = {
-    # Schengen
     "Germany", "France", "Netherlands", "Greece", "Italy", "Spain",
     "Portugal", "Finland", "Norway", "Sweden", "Denmark", "Austria",
     "Belgium", "Switzerland", "Poland", "Czechia", "Czech Republic",
     "Hungary", "Croatia", "Slovenia", "Slovakia", "Estonia", "Latvia",
     "Lithuania", "Luxembourg", "Malta", "Iceland", "Liechtenstein",
-    # Diğer
     "United Kingdom", "United States", "Canada", "Australia",
     "New Zealand", "Japan", "South Korea", "Taiwan", "Israel",
     "United Arab Emirates", "Egypt",
@@ -115,7 +155,25 @@ def send_telegram(text):
 
 
 # ============================================================
-# SEARCH KATMANI (TL cinsinden)
+# YARDIMCI: Değeri TL'ye çevir
+# ============================================================
+def _to_tl(price, currency):
+    """Fiyatı TL'ye çevir. TRY ise dokunma, değilse kur ile çarp."""
+    if not currency or currency == "TRY":
+        return int(price)
+    return int(price * USD_TO_TL)
+
+
+def _price_display(price, currency):
+    """Bildirim için fiyat metni."""
+    if not currency or currency == "TRY":
+        return f"₺{price:,}"
+    tl_value = int(price * USD_TO_TL)
+    return f"{price} {currency} (~₺{tl_value:,})"
+
+
+# ============================================================
+# SEARCH KATMANI
 # ============================================================
 def resolve_dates(route):
     today = datetime.now(timezone.utc).date()
@@ -154,7 +212,7 @@ def check_search():
     first_run = not os.path.exists(SEARCH_STATE_FILE)
     today = datetime.now(timezone.utc).date()
 
-    print("\n--- Swoop Search (2 vizesiz rota, TL) ---")
+    print("\n--- Swoop Search (2 vizesiz rota) ---")
     alerts = 0
 
     for idx, route in enumerate(GOOGLE_FLIGHTS_WATCH):
@@ -173,7 +231,7 @@ def check_search():
             print(f"  [{name}] {depart}→{ret_date}: başarısız")
             continue
 
-        total_tl = out_min + ret_min  # Direkt TL (set_country="TR" sayesinde)
+        total_tl = out_min + ret_min
 
         prev = state.get(state_key, {})
         prev_tl = prev.get("last_tl")
@@ -210,7 +268,6 @@ def check_search():
 
         state[state_key] = {"last_tl": total_tl, "below_threshold": below}
 
-    # Eski state temizle
     today_str = str(today)
     removed = 0
     for k in list(state.keys()):
@@ -227,7 +284,7 @@ def check_search():
 
 
 # ============================================================
-# DEALS KATMANI (TL cinsinden + vize filtresi)
+# DEALS KATMANI (fallback currency-aware)
 # ============================================================
 def _deal_passes_filters(d):
     if not d.destination_region:
@@ -241,8 +298,12 @@ def _deal_passes_filters(d):
     is_high_discount = discount >= DEALS_MIN_DISCOUNT_PCT
     is_asia_deal = is_asia and discount >= DEALS_ASIA_MIN_DISCOUNT_PCT
 
-    if d.price > DEALS_MAX_PRICE_TL:
-        return False, f"fiyat yüksek ({d.price:,} TL)"
+    # Currency-aware fiyat kontrolü (USD veya TRY olabilir)
+    currency = getattr(d, "currency", "TRY") or "TRY"
+    price_tl = _to_tl(d.price, currency)
+    if price_tl > DEALS_MAX_PRICE_TL:
+        return False, f"fiyat yüksek (~{price_tl:,} TL)"
+
     if not (is_high_discount or is_asia_deal):
         return False, f"indirim düşük (%{discount})"
 
@@ -252,13 +313,16 @@ def _deal_passes_filters(d):
 def _format_deal_msg(d, region, prefix_emoji="🎯", extra_info=""):
     airlines = ", ".join(d.airline_names[:2]) if d.airline_names else "?"
     currency = getattr(d, "currency", "TRY") or "TRY"
-    symbol = "₺" if currency == "TRY" else "$"
+    price_str = _price_display(d.price, currency)
+
+    typical_str = ""
+    if d.typical_price:
+        typical_str = f", normal {_price_display(d.typical_price, currency)}"
 
     msg = (
         f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}</b> ({region})\n"
         f"📅 {d.departure_date} → {d.return_date}\n"
-        f"💰 <b>{symbol}{d.price:,}</b> "
-        f"(normal {symbol}{d.typical_price or 0:,}, <b>%{d.discount_pct or 0}</b>)\n"
+        f"💰 <b>{price_str}</b>{typical_str} (<b>%{d.discount_pct or 0}</b>)\n"
         f"🛫 {airlines}"
     )
     if d.stops is not None:
@@ -271,20 +335,24 @@ def _format_deal_msg(d, region, prefix_emoji="🎯", extra_info=""):
 
 
 def check_deals():
-    print("\n--- Swoop Deals (vize filtresi, TL) ---")
+    print("\n--- Swoop Deals (vize filtresi, TL dönüşüm) ---")
 
     try:
-        result = deals("IST")
+        # set_country("TR") global ayar + explicit TransportConfig
+        result = deals("IST", transport=TransportConfig(country="TR"))
+
         if not result.deals:
             print("  deal yok")
             return 0
 
         print(f"  {len(result.deals)} deal alındı")
 
-        # İlk deal'in para birimini logla (set_country çalışıyor mu?)
+        # İlk deal'in para birimi — set_country çalışıyor mu kontrolü
         first_currency = getattr(result.deals[0], "currency", "?")
         first_price = result.deals[0].price
-        print(f"  Örnek: {result.deals[0].destination_city} — {first_price} {first_currency}")
+        first_tl = _to_tl(first_price, first_currency)
+        print(f"  Örnek: {result.deals[0].destination_city} — "
+              f"{first_price} {first_currency} (~{first_tl:,} TL)")
 
         diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
         print(f"  new: {len(diff.new)} | gone: {len(diff.gone)} | "
@@ -292,6 +360,8 @@ def check_deals():
 
         alerts = 0
         skipped_visa = 0
+        skipped_price = 0
+        skipped_discount = 0
 
         # --- YENİ DEAL'LER ---
         for d in diff.new:
@@ -299,6 +369,10 @@ def check_deals():
             if not ok:
                 if "vize" in info:
                     skipped_visa += 1
+                elif "fiyat" in info:
+                    skipped_price += 1
+                elif "indirim" in info:
+                    skipped_discount += 1
                 continue
 
             if alerts >= MAX_NOTIFY:
@@ -306,8 +380,9 @@ def check_deals():
 
             msg = _format_deal_msg(d, info)
             send_telegram(msg)
+            currency = getattr(d, "currency", "TRY") or "TRY"
             print(f"    🎯 {d.destination_city} ({d.destination_country}) "
-                  f"{d.price:,} TL (%{d.discount_pct})")
+                  f"{_price_display(d.price, currency)} (%{d.discount_pct})")
             alerts += 1
 
         # --- FİYAT DEĞİŞİMLERİ ---
@@ -329,21 +404,25 @@ def check_deals():
                 break
 
             extra = ""
+            currency = getattr(d, "currency", "TRY") or "TRY"
             if old_price and new_price and old_price > new_price:
                 pct = (old_price - new_price) / old_price * 100
-                extra = f"📉 Önceki: {old_price:,} → {new_price:,} TL (%{pct:.0f} düşüş)"
+                old_str = _price_display(old_price, currency)
+                new_str = _price_display(new_price, currency)
+                extra = f"📉 Önceki: {old_str} → {new_str} (%{pct:.0f} düşüş)"
 
             msg = _format_deal_msg(d, info, prefix_emoji="📉", extra_info=extra)
             send_telegram(msg)
             print(f"    📉 {d.destination_city} ({d.destination_country}) "
-                  f"{d.price:,} TL (fiyat değişimi)")
+                  f"{_price_display(d.price, currency)} (fiyat değişimi)")
             alerts += 1
 
-        print(f"  Deals: {alerts} bildirim, {skipped_visa} vize nedeniyle atlandı")
+        print(f"  Deals: {alerts} bildirim")
+        print(f"    atlanan → vize: {skipped_visa}, fiyat: {skipped_price}, indirim: {skipped_discount}")
         return alerts
 
     except Exception as e:
-        print(f"  hata: {type(e).__name__}: {str(e)[:100]}")
+        print(f"  hata: {type(e).__name__}: {str(e)[:150]}")
         return 0
 
 
@@ -351,13 +430,19 @@ def check_deals():
 # MAIN
 # ============================================================
 def main():
+    global USD_TO_TL
+
     print("=" * 60)
     print(f"Swoop Monitor — {datetime.now(timezone.utc).isoformat()}")
     print("=" * 60)
 
-    # Türkiye lokasyonu — tüm fiyatlar TL cinsinden gelir
+    # Kur çek (fallback mekanizması ile)
+    print("\n--- Kur ---")
+    USD_TO_TL = get_usd_tl()
+
+    # Türkiye lokasyonu
     set_country("TR")
-    print("Ülke: TR (fiyatlar TL cinsinden)")
+    print("Ülke: TR (arama fiyatları TL, deals fallback ile TL'ye çevrilir)")
 
     search_alerts = check_search()
     time.sleep(2)
@@ -365,6 +450,7 @@ def main():
 
     print("\n" + "=" * 60)
     print(f"Toplam: {search_alerts} search + {deals_alerts} deals")
+    print(f"Kullanılan kur: 1 USD = {USD_TO_TL} TL")
     print("=" * 60)
 
 
