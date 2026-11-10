@@ -14,12 +14,35 @@ TB_DATASOURCE = "price_history"
 
 STATE_FILE = "price_collector_state.json"
 
+# ============================================================
+# WATCHLIST
+# ============================================================
 WATCHLIST = [
-    {"origin": "IST", "dest": "BKK", "depart": "2027-02-15", "ret": "2027-02-22"},
-    {"origin": "IST", "dest": "DPS", "depart": "2027-03-10", "ret": "2027-03-17"},
-    {"origin": "IST", "dest": "KUL", "depart": "2027-03-01", "ret": "2027-03-08"},
+    {"origin": "IST", "dest": "BKK", "depart": "2027-02-15", "ret": "2027-02-22"},  # Bangkok
+    {"origin": "IST", "dest": "DPS", "depart": "2027-03-10", "ret": "2027-03-17"},  # Bali
+    {"origin": "IST", "dest": "KUL", "depart": "2027-03-01", "ret": "2027-03-08"},  # Kuala Lumpur
+    {"origin": "IST", "dest": "SIN", "depart": "2027-03-15", "ret": "2027-03-22"},  # Singapur (yeni)
+    {"origin": "IST", "dest": "HKG", "depart": "2027-04-10", "ret": "2027-04-17"},  # Hong Kong (yeni)
+    {"origin": "IST", "dest": "HAN", "depart": "2027-04-20", "ret": "2027-04-27"},  # Hanoi (yeni)
+    {"origin": "IST", "dest": "MNL", "depart": "2027-05-05", "ret": "2027-05-12"},  # Manila (yeni)
+    {"origin": "IST", "dest": "TBS", "depart": "2027-05-20", "ret": "2027-05-27"},  # Tiflis (yeni)
 ]
 
+
+def get_todays_routes():
+    """Bugünün gün numarasına göre bir grubu seç (round-robin)."""
+    from datetime import datetime
+    day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
+    group = day_of_year % 2
+    
+    half = len(WATCHLIST) // 2
+    if group == 0:
+        routes = WATCHLIST[:half]
+    else:
+        routes = WATCHLIST[half:]
+    
+    print(f"📅 Gün {day_of_year} → Grup {group} ({len(routes)} rota)", flush=True)
+    return routes
 
 # ============================================================
 # STATE
@@ -178,7 +201,9 @@ def main():
     payloads = []
     pending_state_updates = {}  # Gönderim başarılıysa uygulanacak
 
-    for route in WATCHLIST:
+    routes_today = get_todays_routes()
+
+    for route in routes_today:
         candidate = scan_route(route, today_str, now_str)
         if not candidate:
             continue
