@@ -8,6 +8,9 @@ SCHEMA >
     `airline` String `json:$.airline`,
     `price` Float64 `json:$.price`,
     `currency` String `json:$.currency`,
+    `price_level` String `json:$.price_level`,       -- YENİ: low, typical, high
+    `duration_hours` Float64 `json:$.duration_hours`, -- YENİ: Uçuş süresi
+    `stops` Int32 `json:$.stops`,                     -- YENİ: Aktarma sayısı
     `source` String `json:$.source`,
     `observed_at` DateTime `json:$.observed_at`
 
