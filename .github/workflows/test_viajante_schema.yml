@@ -1,10 +1,10 @@
-name: Viajante Schema
+name: Viajante Gelişmiş Test
 
 on:
   workflow_dispatch: {}
 
 jobs:
-  schema:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,5 +12,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install viajante
-      - name: Run schema dump
-        run: python test_viajante_schema.py
+      - name: Run advanced tests
+        env:
+          VIAJANTE_PRICE_HISTORY: "1"   # Fiyat geçmişini etkinleştir
+        run: python test_viajante_gelismis.py
