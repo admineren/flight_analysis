@@ -399,37 +399,53 @@ def process_command(text):
 # ============================================================
 # MAIN
 # ============================================================
-try:
-    r = requests.get(url, params={"offset": offset, "timeout": 55, "limit": 10}, timeout=65)
-    print(f"📥 [7] Telegram yanıtı: {r.status_code}", flush=True)
-    updates = r.json().get("result", [])
-    print(f"📨 [8] Yeni mesaj: {len(updates)}", flush=True)
-    if not updates:
-        print("💤 [9] Yeni mesaj yok.", flush=True)
-        return
-    
-    processed_texts = set()  # aynı batch içinde dedup için
-    
-    for upd in updates:
-        state["last_update_id"] = upd["update_id"]
-        msg = upd.get("message", {})
-        
-        if str(msg.get("chat", {}).get("id")) != str(CHAT_ID):
-            print("⚠️ [10] Yabancı chat atlandı", flush=True)
-            continue
-        
-        text = msg.get("text", "")
-        if text.startswith("/"):
-            if text in processed_texts:
-                print(f"⏭️ [10b] Mükerrer atlandı: {text}", flush=True)
+def main():
+    print("🎯 [5] main() başladı...", flush=True)
+    state = load_state()
+    offset = state.get("last_update_id", 0) + 1
+    print(f"🔄 [6] Dinleme başladı (offset: {offset})", flush=True)
+
+    url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
+
+    try:
+        r = requests.get(url, params={"offset": offset, "timeout": 55, "limit": 10}, timeout=65)
+        print(f"📥 [7] Telegram yanıtı: {r.status_code}", flush=True)
+        updates = r.json().get("result", [])
+        print(f"📨 [8] Yeni mesaj: {len(updates)}", flush=True)
+
+        if not updates:
+            print("💤 [9] Yeni mesaj yok.", flush=True)
+            return
+
+        processed_texts = set()
+
+        for upd in updates:
+            state["last_update_id"] = upd["update_id"]
+            msg = upd.get("message", {})
+
+            if str(msg.get("chat", {}).get("id")) != str(CHAT_ID):
+                print("⚠️ [10] Yabancı chat atlandı", flush=True)
                 continue
-            processed_texts.add(text)
-            print(f"💬 [11] Komut: {text}", flush=True)
-            reply = process_command(text)
-            if reply:
-                send_message(reply)
-    
-    save_state(state)
-    print(f"💾 [12] State kaydedildi (id: {state['last_update_id']})", flush=True)
-except Exception as e:
-    print(f"❌ [13] Bot hatası: {e}", flush=True)
+
+            text = msg.get("text", "")
+            if text.startswith("/"):
+                if text in processed_texts:
+                    print(f"⏭️ [10b] Mükerrer atlandı: {text}", flush=True)
+                    continue
+                processed_texts.add(text)
+                print(f"💬 [11] Komut: {text}", flush=True)
+                reply = process_command(text)
+                if reply:
+                    send_message(reply)
+
+        save_state(state)
+        print(f"💾 [12] State kaydedildi (id: {state['last_update_id']})", flush=True)
+
+    except Exception as e:
+        print(f"❌ [13] Bot hatası: {e}", flush=True)
+
+
+print("🏁 [14] main() çağrılıyor...", flush=True)
+if __name__ == "__main__":
+    main()
+print("🏁 [15] Bitti.", flush=True)
