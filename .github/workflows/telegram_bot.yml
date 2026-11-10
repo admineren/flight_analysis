@@ -1,0 +1,21 @@
+name: Telegram Bot
+
+on:
+  workflow_dispatch: {} # Sadece manuel veya cron-job.org tetiklemesi
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install viajante requests
+      - name: Run Bot
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
+          TB_READ_TOKEN: ${{ secrets.TB_READ_TOKEN }}
+        run: python telegram_bot.py
