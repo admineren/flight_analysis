@@ -12,13 +12,13 @@ from swoop import (
 
 SEARCH_STATE_FILE = "swoop_search_state.json"
 DEALS_STATE_FILE = "swoop_deals_state.json"
+VISA_DATA_FILE = "visa_data.json"
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 USD_TO_TL = 50.0
 
-# --- Sadece vizesiz rotalar ---
 GOOGLE_FLIGHTS_WATCH = [
     {"name": "IST → Tbilisi", "origin": "IST", "destination": "TBS",
      "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 11000},
@@ -26,17 +26,71 @@ GOOGLE_FLIGHTS_WATCH = [
      "departure_offset_days": 60, "stay_days": 5, "max_price_tl": 17000},
 ]
 
-# --- Deals filtre kuralları ---
 DEALS_MIN_DISCOUNT_PCT = 40
 DEALS_ASIA_MIN_DISCOUNT_PCT = 25
 DEALS_MAX_PRICE_TL = 40000
-
 MAX_NOTIFY = 5
 REQUEST_DELAY = 3
 
+# ============================================================
+# VİZE VERİSİ (Yerel JSON'dan)
+# ============================================================
+VISA_DATA = {}
+VISA_MAP = {"green": set(), "blue": set(), "yellow": set(), "red": set()}
+
+# swoop'un döndürdüğü ülke isimlerini ISO kodlarına çevirmek için gerekli
+COUNTRY_NAME_TO_ISO = {
+    "Russia": "RU", "Georgia": "GE", "Azerbaijan": "AZ", "Morocco": "MA",
+    "Kazakhstan": "KZ", "Serbia": "RS", "Albania": "AL", "Thailand": "TH",
+    "Malaysia": "MY", "Singapore": "SG", "Indonesia": "ID", "Philippines": "PH",
+    "Vietnam": "VN", "Cambodia": "KH", "Egypt": "EG", "Tunisia": "TN",
+    "South Africa": "ZA", "Qatar": "QA", "Oman": "OM", "Bahrain": "BH",
+    "Jordan": "JO", "Lebanon": "LB", "Iran": "IR", "Maldives": "MV",
+    "Sri Lanka": "LK", "Nepal": "NP", "Kenya": "KE", "Tanzania": "TZ",
+    "Ethiopia": "ET", "United Arab Emirates": "AE", "Germany": "DE",
+    "France": "FR", "United Kingdom": "GB", "United States": "US",
+    # Not: Listeyi ihtiyaca göre genişletebilirsiniz.
+}
+
+def load_visa_data():
+    global VISA_DATA, VISA_MAP
+    if not os.path.exists(VISA_DATA_FILE):
+        print("UYARI: visa_data.json bulunamadı. Vize filtresi devre dışı.")
+        return
+
+    try:
+        with open(VISA_DATA_FILE, "r", encoding="utf-8") as f:
+            VISA_DATA = json.load(f)
+        
+        # API'den gelen virgülle ayrılmış stringleri set'e çevir
+        colors = VISA_DATA.get("data", {}).get("colors", {})
+        for color, codes_str in colors.items():
+            if codes_str:
+                # Boşlukları temizle ve sete ekle
+                VISA_MAP[color] = set(c.strip() for c in codes_str.split(",") if c.strip())
+        
+        print(f"Vize verisi yüklendi. (Güncelleme: {VISA_DATA.get('fetched_at', '?')[:10]})")
+    except Exception as e:
+        print(f"Vize verisi yüklenemedi: {e}")
+
+def get_visa_status(country_name):
+    """Ülke adına göre vize rengini döndürür."""
+    iso = COUNTRY_NAME_TO_ISO.get(country_name)
+    if not iso:
+        return None, "bilinmiyor"
+    
+    if iso in VISA_MAP.get("green", set()):
+        return True, "Vizesiz (Yeşil)"
+    if iso in VISA_MAP.get("blue", set()):
+        return True, "Kapıda Vize / e-Vize (Mavi)"
+    if iso in VISA_MAP.get("yellow", set()):
+        return True, "eTA (Sarı)"
+    if iso in VISA_MAP.get("red", set()):
+        return False, "Vize Gerekli (Kırmızı)"
+    return None, "bilinmiyor"
 
 # ============================================================
-# KUR ÇEKME (TCMB + fallback)
+# YARDIMCI FONKSİYONLAR
 # ============================================================
 def get_usd_tl():
     import requests
@@ -53,69 +107,22 @@ def get_usd_tl():
                 return float(match.group(1))
     except Exception:
         pass
-
     try:
         r = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
         if r.status_code == 200:
             return float(r.json().get("rates", {}).get("TRY", 50.0))
     except Exception:
         pass
-
     return 50.0
 
-
-# ============================================================
-# VİZE FİLTRESİ
-# ============================================================
-VISA_FREE_COUNTRIES = {
-    "Georgia", "Azerbaijan", "Serbia", "Bosnia and Herzegovina",
-    "Albania", "North Macedonia", "Montenegro", "Kosovo",
-    "Moldova", "Belarus", "Ukraine", "Russia",
-    "Kazakhstan", "Kyrgyzstan", "Uzbekistan", "Tajikistan",
-    "Qatar", "Oman", "Bahrain", "Jordan", "Lebanon", "Iran",
-    "Thailand", "Malaysia", "Singapore", "Indonesia",
-    "Philippines", "Maldives", "Sri Lanka", "Vietnam",
-    "Cambodia", "Laos", "Nepal",
-    "Morocco", "Tunisia", "Kenya", "Tanzania", "Ethiopia",
-    "South Africa",
-    "Türkiye", "Turkey", "Cyprus",
-}
-
-VISA_REQUIRED_COUNTRIES = {
-    "Germany", "France", "Netherlands", "Greece", "Italy", "Spain",
-    "Portugal", "Finland", "Norway", "Sweden", "Denmark", "Austria",
-    "Belgium", "Switzerland", "Poland", "Czechia", "Czech Republic",
-    "Hungary", "Croatia", "Slovenia", "Slovakia", "Estonia", "Latvia",
-    "Lithuania", "Luxembourg", "Malta", "Iceland", "Liechtenstein",
-    "United Kingdom", "United States", "Canada", "Australia",
-    "New Zealand", "Japan", "South Korea", "Taiwan", "Israel",
-    "United Arab Emirates", "Egypt",
-}
-
-
-def is_visa_free(country_name):
-    if not country_name:
-        return False
-    if country_name in VISA_REQUIRED_COUNTRIES:
-        return False
-    return country_name in VISA_FREE_COUNTRIES
-
-
-# ============================================================
-# STATE
-# ============================================================
 def _load_state(path):
     if not os.path.exists(path):
         return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-        if not content:
-            return {}
-        return json.loads(content)
+            return json.loads(f.read().strip())
     except (json.JSONDecodeError, OSError):
         return {}
-
 
 def _save_state(path, data):
     tmp = path + ".tmp"
@@ -123,34 +130,22 @@ def _save_state(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=True)
     os.replace(tmp, path)
 
-
 def send_telegram(text):
     import requests
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
-        r = requests.post(url, json={
+        requests.post(url, json={
             "chat_id": CHAT_ID, "text": text,
             "parse_mode": "HTML", "disable_web_page_preview": True,
         }, timeout=15)
     except Exception as e:
         print("Telegram exception:", e)
 
-
-# ============================================================
-# YARDIMCI: Değeri TL'ye çevir
-# ============================================================
 def _to_tl(price, currency):
-    if not currency or currency == "TRY":
-        return int(price)
-    return int(price * USD_TO_TL)
-
+    return int(price) if not currency or currency == "TRY" else int(price * USD_TO_TL)
 
 def _price_display(price, currency):
-    if not currency or currency == "TRY":
-        return f"₺{price:,}"
-    tl_value = int(price * USD_TO_TL)
-    return f"{price} {currency} (~₺{tl_value:,})"
-
+    return f"₺{price:,}" if not currency or currency == "TRY" else f"{price} {currency} (~₺{int(price * USD_TO_TL):,})"
 
 # ============================================================
 # SEARCH KATMANI
@@ -158,9 +153,7 @@ def _price_display(price, currency):
 def resolve_dates(route):
     today = datetime.now(timezone.utc).date()
     depart = today + timedelta(days=route["departure_offset_days"])
-    ret = depart + timedelta(days=route["stay_days"])
-    return depart, ret
-
+    return depart, depart + timedelta(days=route["stay_days"])
 
 def _search_leg(origin, dest, date_str):
     try:
@@ -169,26 +162,19 @@ def _search_leg(origin, dest, date_str):
             return None
         prices = [opt.price for opt in out.results if opt.price]
         return min(prices) if prices else None
-    except Exception as e:
-        if "gRPC status 13" in str(e) or "INTERNAL" in str(e):
-            time.sleep(5)
-            try:
-                out = swoop_search(origin, dest, date_str)
-                if not out.results:
-                    return None
-                prices = [opt.price for opt in out.results if opt.price]
-                return min(prices) if prices else None
-            except Exception:
-                return None
-        return None
-
+    except Exception:
+        time.sleep(5)
+        try:
+            out = swoop_search(origin, dest, date_str)
+            prices = [opt.price for opt in out.results if opt.price]
+            return min(prices) if prices else None
+        except Exception:
+            return None
 
 def check_search():
     state = _load_state(SEARCH_STATE_FILE)
     first_run = not os.path.exists(SEARCH_STATE_FILE)
     today = datetime.now(timezone.utc).date()
-
-    print("\n--- Swoop Search ---")
     alerts = 0
 
     for idx, route in enumerate(GOOGLE_FLIGHTS_WATCH):
@@ -196,164 +182,120 @@ def check_search():
         depart, ret_date = resolve_dates(route)
         state_key = f"{name}|{depart}|{ret_date}"
 
-        if idx > 0:
-            time.sleep(REQUEST_DELAY)
+        if idx > 0: time.sleep(REQUEST_DELAY)
 
         out_min = _search_leg(route["origin"], route["destination"], str(depart))
         time.sleep(1)
         ret_min = _search_leg(route["destination"], route["origin"], str(ret_date))
 
-        if out_min is None or ret_min is None:
-            print(f"  [{name}] {depart}→{ret_date}: başarısız")
-            continue
+        if out_min is None or ret_min is None: continue
 
         total_tl = out_min + ret_min
-
         prev = state.get(state_key, {})
-        prev_tl = prev.get("last_tl")
         was_below = prev.get("below_threshold", False)
         below = total_tl <= route["max_price_tl"]
 
-        trend = ""
-        if prev_tl and prev_tl > total_tl:
-            pct = (prev_tl - total_tl) / prev_tl * 100
-            if pct >= 3:
-                trend = f" (↓ %{pct:.0f})"
-
-        print(f"  [{name}] {depart}→{ret_date} | {total_tl:,.0f} TL | "
-              f"eşik {route['max_price_tl']:,} | altında: {below}{trend}")
-
-        if first_run:
-            pass
-        elif below and not was_below:
+        if not first_run and below and not was_below:
             send_telegram(
                 f"✈️ <b>[Swoop Search] {name}</b>\n"
                 f"📅 {depart} → {ret_date}\n"
-                f"💰 <b>{total_tl:,.0f} TL</b>{trend}\n"
+                f"💰 <b>{total_tl:,.0f} TL</b>\n"
                 f"⚠️ <i>Google TR fiyatı, doğrula</i>"
-            )
-            alerts += 1
-        elif below and was_below and trend:
-            send_telegram(
-                f"📉 <b>[Swoop Search] {name}</b> daha da düştü\n"
-                f"📅 {depart} → {ret_date}\n"
-                f"💰 <b>{total_tl:,.0f} TL</b>{trend}"
             )
             alerts += 1
 
         state[state_key] = {"last_tl": total_tl, "below_threshold": below}
 
-    today_str = str(today)
-    for k in list(state.keys()):
-        parts = k.split("|")
-        if len(parts) == 3 and parts[1] < today_str:
-            del state[k]
-
     _save_state(SEARCH_STATE_FILE, state)
-    print(f"  Search: {alerts} alert")
     return alerts
 
-
 # ============================================================
-# DEALS KATMANI
+# DEALS KATMANI (Vize JSON Entegrasyonu)
 # ============================================================
 def _deal_passes_filters(d):
     if not d.destination_region:
         return False, "bölge yok"
-    if not is_visa_free(d.destination_country):
-        return False, "vize gerekli"
+    
+    # YENİ VİZE FİLTRESİ
+    is_ok, visa_label = get_visa_status(d.destination_country)
+    if is_ok is False:
+        return False, visa_label
+    if is_ok is None:
+        return False, "vize durumu bilinmiyor"
 
-    region = str(d.destination_region).replace("Region.", "")
     discount = d.discount_pct or 0
-    is_asia = "ASIA" in region
-
-    currency = getattr(d, "currency", "TRY") or "TRY"
-    price_tl = _to_tl(d.price, currency)
-    if price_tl > DEALS_MAX_PRICE_TL:
+    is_asia = "ASIA" in str(d.destination_region)
+    
+    if _to_tl(d.price, getattr(d, "currency", "TRY")) > DEALS_MAX_PRICE_TL:
         return False, "fiyat yüksek"
 
     if not (discount >= DEALS_MIN_DISCOUNT_PCT or (is_asia and discount >= DEALS_ASIA_MIN_DISCOUNT_PCT)):
         return False, "indirim düşük"
 
-    return True, region
+    return True, visa_label
 
-
-def _format_deal_msg(d, region, prefix_emoji="🎯", extra_info=""):
+def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
     airlines = ", ".join(d.airline_names[:2]) if d.airline_names else "?"
-    currency = getattr(d, "currency", "TRY") or "TRY"
-    
-    price_str = _price_display(d.price, currency)
-    typical_str = f", normal {_price_display(d.typical_price, currency)}" if d.typical_price else ""
+    price_str = _price_display(d.price, getattr(d, "currency", "TRY"))
+    typical_str = f", normal {_price_display(d.typical_price, d.currency)}" if d.typical_price else ""
 
-    # TEMİZLİK: URL kısmı kaldırıldı, mesaj daha kısa ve net.
+    # API'NİN ZORUNLU KILDIĞI YASAL UYARI
+    disclaimer = "<i>⚠️ Resmi olmayan veri. Kurallar değişebilir; seyahatten önce resmi makamlardan teyit edin.</i>"
+
     msg = (
-        f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}</b> ({region})\n"
+        f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}</b>\n"
         f"📅 {d.departure_date} → {d.return_date}\n"
         f"💰 <b>{price_str}</b>{typical_str} (<b>%{d.discount_pct or 0}</b>)\n"
-        f"🛫 {airlines}"
+        f"🛫 {airlines}\n"
+        f"🛂 <b>{visa_label}</b>"
     )
-    if d.stops is not None:
-        msg += f" | {d.stops} aktarma"
-    if extra_info:
-        msg += f"\n{extra_info}"
-    
+    if extra_info: msg += f"\n{extra_info}"
+    msg += f"\n\n{disclaimer}"
     return msg
 
-
 def check_deals():
-    print("\n--- Swoop Deals ---")
     try:
         result = deals("IST", transport=TransportConfig(country="TR"))
-        if not result.deals:
-            return 0
+        if not result.deals: return 0
 
         diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
-        print(f"  new: {len(diff.new)} | price_changes: {len(diff.price_changes)}")
-
         alerts = 0
+
         for d in diff.new:
-            ok, info = _deal_passes_filters(d)
+            ok, label = _deal_passes_filters(d)
             if ok and alerts < MAX_NOTIFY:
-                send_telegram(_format_deal_msg(d, info))
+                send_telegram(_format_deal_msg(d, label))
                 alerts += 1
 
         for pc in diff.price_changes:
             d = getattr(pc, "deal", None) or getattr(pc, "current", None)
-            if not d:
-                continue
-            ok, info = _deal_passes_filters(d)
+            if not d: continue
+            ok, label = _deal_passes_filters(d)
             if ok and alerts < MAX_NOTIFY:
                 old_p = getattr(pc, "old_price", None)
-                extra = ""
-                if old_p and old_p > d.price:
-                    pct = (old_p - d.price) / old_p * 100
-                    extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{pct:.0f} düşüş)"
-                
-                send_telegram(_format_deal_msg(d, info, prefix_emoji="📉", extra_info=extra))
+                extra = f"📉 Önceki: {_price_display(old_p, d.currency)}" if old_p and old_p > d.price else ""
+                send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
                 alerts += 1
 
-        print(f"  Deals: {alerts} bildirim")
         return alerts
     except Exception as e:
-        print(f"  hata: {str(e)[:100]}")
+        print(f"Deals hata: {e}")
         return 0
-
 
 # ============================================================
 # MAIN
 # ============================================================
 def main():
     global USD_TO_TL
-    print(f"=== Swoop Monitor — {datetime.now(timezone.utc).isoformat()} ===")
+    print(f"=== Swoop Monitor ===")
     
+    load_visa_data() # Vize verisini yükle
     USD_TO_TL = get_usd_tl()
     set_country("TR")
     
-    search_alerts = check_search()
+    check_search()
     time.sleep(2)
-    deals_alerts = check_deals()
-
-    print(f"=== Toplam: {search_alerts} search + {deals_alerts} deals ===")
+    check_deals()
 
 if __name__ == "__main__":
     main()
