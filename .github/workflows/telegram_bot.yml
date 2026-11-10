@@ -1,13 +1,18 @@
 name: Telegram Bot
 
 on:
-  workflow_dispatch: {} # Sadece manuel veya cron-job.org tetiklemesi
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   bot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -19,3 +24,13 @@ jobs:
           TINYBIRD_HOST: ${{ secrets.TINYBIRD_HOST }}
           TB_READ_TOKEN: ${{ secrets.TB_READ_TOKEN }}
         run: python telegram_bot.py
+      - name: Persist state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f telegram_state.json ]; then
+            git add telegram_state.json
+            git commit -m "update telegram state [skip ci]" || echo "no changes"
+            git pull --rebase origin main || true
+            git push
+          fi
