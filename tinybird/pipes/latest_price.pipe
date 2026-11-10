@@ -2,8 +2,8 @@ TOKEN telegram_read_token READ
 
 NODE latest_price_node
 SQL >
-%
-    SELECT price, airline, observed_at
+    %
+    SELECT price, airline, observed_at, price_level, duration_hours, stops
     FROM price_history
     WHERE origin = {{ String(origin) }}
       AND destination = {{ String(destination) }}
