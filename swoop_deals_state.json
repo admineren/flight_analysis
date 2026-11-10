@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "saved_at": "2026-11-10T12:03:21.344614+00:00",
+  "saved_at": "2026-11-10T18:58:21.506458+00:00",
   "origin": "IST",
   "deals": [
     {
@@ -10,9 +10,9 @@
       "destination_country": "Russia",
       "departure_date": "2027-01-21",
       "return_date": "2027-01-27",
-      "price": 22464,
+      "price": 23410,
       "typical_price": 82846,
-      "discount_pct": 73,
+      "discount_pct": 72,
       "airlines": [
         "J2"
       ],
@@ -24,7 +24,7 @@
       "trip_days": 6,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTIxagcIARIDSVNUcgwIAhIIL20vMGhrcG4aIxIKMjAyNy0wMS0yN2oMCAISCC9tLzBoa3BucgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhKRVpXRnNRMjl1YzNSeVlXbHVkSE13TFRBYURBajVqWWtCRUFJYUExUlNXVGc0Y0xEZEFnPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTIxagcIARIDSVNUcgwIAhIIL20vMGhrcG4aIxIKMjAyNy0wMS0yN2oMCAISCC9tLzBoa3BucgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhKRVpXRnNRMjl1YzNSeVlXbHVkSE13TFRBYURBalY4STRCRUFJYUExUlNXVGc0Y0p6c0FnPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -50,7 +50,7 @@
       "trip_days": 6,
       "destination_region": "asia-pacific",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTIxagcIARIDSVNUcg0IAhIJL20vMDU4bTUzGiQSCjIwMjctMDEtMjdqDQgCEgkvbS8wNThtNTNyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVEVhREFqdHVZUUJFQUlhQTFSU1dUZzRjTUhSQWc9PQ&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTIxagcIARIDSVNUcg0IAhIJL20vMDU4bTUzGiQSCjIwMjctMDEtMjdqDQgCEgkvbS8wNThtNTNyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVEVhREFqdHVZUUJFQUlhQTFSU1dUZzRjTkhSQWc9PQ&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -62,7 +62,7 @@
       "destination_country": "Egypt",
       "departure_date": "2026-12-07",
       "return_date": "2026-12-14",
-      "price": 6012,
+      "price": 6010,
       "typical_price": 12149,
       "discount_pct": 51,
       "airlines": [
@@ -76,7 +76,7 @@
       "trip_days": 7,
       "destination_region": "africa",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTEyLTA3agcIARIDSVNUcg0IAhIJL20vMDI2NmtqGiQSCjIwMjYtMTItMTRqDQgCEgkvbS8wMjY2a2pyBwgBEgNJU1RAAUgBUgNUUll6fENqUklWSGM0TnpCbmIyOXZjRVZCUlU5TmJIZENSeTB0TFMwdExTMXZlV2RrTnkxdU1VRkJRVUZCUjNKNlEwRlZTVEF0U2tkQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUSWFDd2pkMkNRUUFob0RWRkpaT0Rod3dGMD0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTEyLTA3agcIARIDSVNUcg0IAhIJL20vMDI2NmtqGiQSCjIwMjYtMTItMTRqDQgCEgkvbS8wMjY2a2pyBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUSWFDd2o2MWlRUUFob0RWRkpaT0Rod3dGMD0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -88,7 +88,7 @@
       "destination_country": "Finland",
       "departure_date": "2027-02-11",
       "return_date": "2027-02-18",
-      "price": 16316,
+      "price": 16310,
       "typical_price": 32909,
       "discount_pct": 50,
       "airlines": [
@@ -102,7 +102,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAyLTExagcIARIDSVNUcg0IAhIJL20vMDE1bmIwGiQSCjIwMjctMDItMThqDQgCEgkvbS8wMTVuYjByBwgBEgNJU1RAAUgBUgNUUll6fENqUklWSGM0TnpCbmIyOXZjRVZCUlU5TmJIZENSeTB0TFMwdExTMXZlV2RrTnkxdU1VRkJRVUZCUjNKNlEwRlZTVEF0U2tkQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUTWFDd2k4eW1NUUFob0RWRkpaT0RodzRQMEI&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAyLTExagcIARIDSVNUcg0IAhIJL20vMDE1bmIwGiQSCjIwMjctMDItMThqDQgCEgkvbS8wMTVuYjByBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUTWFDd2pVeFdNUUFob0RWRkpaT0RodzRQMEI&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -114,9 +114,9 @@
       "destination_country": "Morocco",
       "departure_date": "2027-02-19",
       "return_date": "2027-02-26",
-      "price": 12500,
+      "price": 12437,
       "typical_price": 24245,
-      "discount_pct": 48,
+      "discount_pct": 49,
       "airlines": [
         "VY"
       ],
@@ -128,7 +128,33 @@
       "trip_days": 7,
       "destination_region": "africa",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAyLTE5agcIARIDSVNUcg0IAhIJL20vMDFxOXE3GiQSCjIwMjctMDItMjZqDQgCEgkvbS8wMXE5cTdyBwgBEgNJU1RAAUgBUgNUUll6fENqUklWSGM0TnpCbmIyOXZjRVZCUlU5TmJIZENSeTB0TFMwdExTMXZlV2RrTnkxdU1VRkJRVUZCUjNKNlEwRlZTVEF0U2tkQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUUWFDd2p0cEV3UUFob0RWRkpaT0Rod3NzSUI&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAyLTE5agcIARIDSVNUcg0IAhIJL20vMDFxOXE3GiQSCjIwMjctMDItMjZqDQgCEgkvbS8wMXE5cTdyBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUUWFDd2plODBzUUFob0RWRkpaT0Rod3Y4RUI&curr=TRY&hl=en&gl=TR&gsas=1",
+      "query_cabin": "economy",
+      "query_adults": 1,
+      "query_include_basic_economy": false
+    },
+    {
+      "origin": "IST",
+      "destination": "BGO",
+      "destination_city": "Bergen",
+      "destination_country": "Norway",
+      "departure_date": "2026-12-24",
+      "return_date": "2026-12-31",
+      "price": 12408,
+      "typical_price": 22252,
+      "discount_pct": 44,
+      "airlines": [
+        "LH"
+      ],
+      "airline_names": [
+        "Lufthansa"
+      ],
+      "duration_minutes": 460,
+      "stops": 1,
+      "trip_days": 7,
+      "destination_region": "europe",
+      "currency": "TRY",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMGZtN3MaIxIKMjAyNi0xMi0zMWoMCAISCC9tLzBmbTdzcgcIARIDSVNUQAFIAVIDVFJZenxDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVFVhQ3dqRjNVc1FBaG9EVkZKWk9EaHdoc0VC&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -154,7 +180,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTExLTMwagcIARIDSVNUcg0IAhIJL20vMDFjcjI4GiQSCjIwMjYtMTItMDdqDQgCEgkvbS8wMWNyMjhyBwgBEgNJU1RAAUgBUgNUUll6fENqUklWSGM0TnpCbmIyOXZjRVZCUlU5TmJIZENSeTB0TFMwdExTMXZlV2RrTnkxdU1VRkJRVUZCUjNKNlEwRlZTVEF0U2tkQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUVWFDd2luODJJUUFob0RWRkpaT0Rod2d2d0I&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTExLTMwagcIARIDSVNUcg0IAhIJL20vMDFjcjI4GiQSCjIwMjYtMTItMDdqDQgCEgkvbS8wMWNyMjhyBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUWWFDd2luODJJUUFob0RWRkpaT0Rod2p2d0I&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -166,7 +192,7 @@
       "destination_country": "United Kingdom",
       "departure_date": "2027-01-25",
       "return_date": "2027-02-03",
-      "price": 10519,
+      "price": 10515,
       "typical_price": 18449,
       "discount_pct": 43,
       "airlines": [
@@ -180,7 +206,7 @@
       "trip_days": 9,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTI1agcIARIDSVNUcgwIAhIIL20vMDk1bDAaIxIKMjAyNy0wMi0wM2oMCAISCC9tLzA5NWwwcgcIARIDSVNUQAFIAVIDVFJZenxDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVFlhQ3dqYW1VQVFBaG9EVkZKWk9EaHd6S01C&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTI1agcIARIDSVNUcgwIAhIIL20vMDk1bDAaIxIKMjAyNy0wMi0wM2oMCAISCC9tLzA5NWwwcgcIARIDSVNUQAFIAVIDVFJZenxDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVGNhQ3dqTmxrQVFBaG9EVkZKWk9EaHd6S01C&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -192,7 +218,7 @@
       "destination_country": "Norway",
       "departure_date": "2027-01-29",
       "return_date": "2027-02-05",
-      "price": 14292,
+      "price": 14286,
       "typical_price": 24958,
       "discount_pct": 43,
       "airlines": [
@@ -206,7 +232,33 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTI5agcIARIDSVNUcg0IAhIJL20vMDE4YnZsGiQSCjIwMjctMDItMDVqDQgCEgkvbS8wMThidmxyBwgBEgNJU1RAAUgBUgNUUll6fENqUklWSGM0TnpCbmIyOXZjRVZCUlU5TmJIZENSeTB0TFMwdExTMXZlV2RrTnkxdU1VRkJRVUZCUjNKNlEwRlZTVEF0U2tkQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUY2FDd2o0bkZjUUFob0RWRkpaT0Rod290NEI&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTI5agcIARIDSVNUcg0IAhIJL20vMDE4YnZsGiQSCjIwMjctMDItMDVqDQgCEgkvbS8wMThidmxyBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUZ2FDd2pjbUZjUUFob0RWRkpaT0Rod290NEI&curr=TRY&hl=en&gl=TR&gsas=1",
+      "query_cabin": "economy",
+      "query_adults": 1,
+      "query_include_basic_economy": false
+    },
+    {
+      "origin": "IST",
+      "destination": "MKF",
+      "destination_city": "M\u00fcnster",
+      "destination_country": "Germany",
+      "departure_date": "2026-12-06",
+      "return_date": "2026-12-13",
+      "price": 10776,
+      "typical_price": 17901,
+      "discount_pct": 40,
+      "airlines": [
+        "LH"
+      ],
+      "airline_names": [
+        "Lufthansa"
+      ],
+      "duration_minutes": 444,
+      "stops": 1,
+      "trip_days": 7,
+      "destination_region": null,
+      "currency": "TRY",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTEyLTA2agcIARIDSVNUcg0IAhIJL20vMDE0OW1xGiQSCjIwMjYtMTItMTNqDQgCEgkvbS8wMTQ5bXFyBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoSkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUa2FDd2pNNGtFUUFob0RWRkpaT0RodzFLY0I&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -218,7 +270,7 @@
       "destination_country": "Morocco",
       "departure_date": "2027-04-29",
       "return_date": "2027-05-05",
-      "price": 14342,
+      "price": 14336,
       "typical_price": 23262,
       "discount_pct": 38,
       "airlines": [
@@ -232,7 +284,7 @@
       "trip_days": 6,
       "destination_region": "africa",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTA0LTI5agcIARIDSVNUcgwIAhIIL20vMDU0cncaIxIKMjAyNy0wNS0wNWoMCAISCC9tLzA1NHJ3cgcIARIDSVNUQAFIAVIDVFJZenxDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVGdhQ3dpWHhGY1FBaG9EVkZKWk9EaHdodDhC&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTA0LTI5agcIARIDSVNUcgwIAhIIL20vMDU0cncaIxIKMjAyNy0wNS0wNWoMCAISCC9tLzA1NHJ3cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFd0dnc0krYjlYRUFJYUExUlNXVGc0Y0liZkFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -244,7 +296,7 @@
       "destination_country": "Pakistan",
       "departure_date": "2026-11-30",
       "return_date": "2026-12-07",
-      "price": 27406,
+      "price": 27421,
       "typical_price": 43749,
       "discount_pct": 37,
       "airlines": [
@@ -256,7 +308,7 @@
       "trip_days": 7,
       "destination_region": "asia-pacific",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTExLTMwagcIARIDSVNUcg0IAhIJL20vMDI3X2RsGiQSCjIwMjYtMTItMDdqDQgCEgkvbS8wMjdfZGxyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaEpFWldGc1EyOXVjM1J5WVdsdWRITXdMVGthREFqNG9xY0JFQUlhQTFSU1dUZzRjSjZxQXc9PQ&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTExLTMwagcIARIDSVNUcg0IAhIJL20vMDI3X2RsGiQSCjIwMjYtMTItMDdqDQgCEgkvbS8wMjdfZGxyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEV4R2d3STFLNm5BUkFDR2dOVVVsazRPSERScWdNPQ&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -268,7 +320,7 @@
       "destination_country": "Portugal",
       "departure_date": "2026-12-03",
       "return_date": "2026-12-10",
-      "price": 31049,
+      "price": 31037,
       "typical_price": 49054,
       "discount_pct": 37,
       "airlines": [
@@ -282,33 +334,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTEyLTAzagcIARIDSVNUcg0IAhIJL20vMDJwaGMxGiQSCjIwMjYtMTItMTBqDQgCEgkvbS8wMnBoYzFyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEV3R2d3STRjQzlBUkFDR2dOVVVsazRPSER5NGdNPQ&curr=TRY&hl=en&gl=TR&gsas=1",
-      "query_cabin": "economy",
-      "query_adults": 1,
-      "query_include_basic_economy": false
-    },
-    {
-      "origin": "IST",
-      "destination": "BGO",
-      "destination_city": "Bergen",
-      "destination_country": "Norway",
-      "departure_date": "2026-12-24",
-      "return_date": "2026-12-31",
-      "price": 14212,
-      "typical_price": 22252,
-      "discount_pct": 36,
-      "airlines": [
-        "LH"
-      ],
-      "airline_names": [
-        "Lufthansa"
-      ],
-      "duration_minutes": 460,
-      "stops": 1,
-      "trip_days": 7,
-      "destination_region": "europe",
-      "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMGZtN3MaIxIKMjAyNi0xMi0zMWoMCAISCC9tLzBmbTdzcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFeEdnc0kwZDVXRUFJYUExUlNXVGc0Y0lQZEFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI2LTEyLTAzagcIARIDSVNUcg0IAhIJL20vMDJwaGMxGiQSCjIwMjYtMTItMTBqDQgCEgkvbS8wMnBoYzFyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEV5R2d3SXk3ZTlBUkFDR2dOVVVsazRPSER5NGdNPQ&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -334,7 +360,7 @@
       "trip_days": 6,
       "destination_region": "africa",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTExLTIxagcIARIDSVNUcgwIAhIIL20vMGZuejgaIxIKMjAyNi0xMS0yN2oMCAISCC9tLzBmbno4cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFeUdnd0kvTnVZQVJBQ0dnTlVVbGs0T0hDVGhRTT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTExLTIxagcIARIDSVNUcgwIAhIIL20vMGZuejgaIxIKMjAyNi0xMS0yN2oMCAISCC9tLzBmbno4cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFekdnd0kvTnVZQVJBQ0dnTlVVbGs0T0hDbWhRTT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -360,7 +386,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMGo3bmcaIxIKMjAyNi0xMi0zMWoMCAISCC9tLzBqN25ncgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFekdnc0lpNFpMRUFJYUExUlNXVGc0Y0o2L0FRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMGo3bmcaIxIKMjAyNi0xMi0zMWoMCAISCC9tLzBqN25ncgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFMEdnc0lpNFpMRUFJYUExUlNXVGc0Y0tlL0FRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -386,7 +412,7 @@
       "trip_days": 6,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMGZ0angaIxIKMjAyNi0xMi0wOWoMCAISCC9tLzBmdGp4cgcIARIDSVNUQAFIAVIDVFJZenxDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEUwR2dzSTdhd29FQUlhQTFSU1dUZzRjT2xt&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMGZ0angaIxIKMjAyNi0xMi0wOWoMCAISCC9tLzBmdGp4cgcIARIDSVNUQAFIAVIDVFJZenxDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEUxR2dzSTdhd29FQUlhQTFSU1dUZzRjTzVt&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -412,7 +438,7 @@
       "trip_days": 6,
       "destination_region": "latin-america",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTExLTI2agcIARIDSVNUcgwIAhIIL20vMGZjeWoaIxIKMjAyNi0xMi0wMmoMCAISCC9tLzBmY3lqcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFMUdnd0l4TGloQWhBQ0dnTlVVbGs0T0hERjRRVT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTExLTI2agcIARIDSVNUcgwIAhIIL20vMGZjeWoaIxIKMjAyNi0xMi0wMmoMCAISCC9tLzBmY3lqcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFMkdnd0l4TGloQWhBQ0dnTlVVbGs0T0hEcDRRVT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -424,7 +450,7 @@
       "destination_country": "Egypt",
       "departure_date": "2027-01-16",
       "return_date": "2027-01-23",
-      "price": 6515,
+      "price": 6512,
       "typical_price": 9658,
       "discount_pct": 33,
       "airlines": [
@@ -438,7 +464,33 @@
       "trip_days": 7,
       "destination_region": "africa",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTE2agcIARIDSVNUcg0IAhIJL20vMDJ4YnpqGiQSCjIwMjctMDEtMjNqDQgCEgkvbS8wMnhiempyBwgBEgNJU1RAAUgBUgNUUll6fENqUklWSGM0TnpCbmIyOXZjRVZCUlU5TmJIZENSeTB0TFMwdExTMXZlV2RrTnkxdU1VRkJRVUZCUjNKNlEwRlZTVEF0U2tkQkVoTkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xURTJHZ3NJbHVFbkVBSWFBMVJTV1RnNGNLaGw&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTE2agcIARIDSVNUcg0IAhIJL20vMDJ4YnpqGiQSCjIwMjctMDEtMjNqDQgCEgkvbS8wMnhiempyBwgBEgNJU1RAAUgBUgNUUll6fENqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoTkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xURTNHZ3NJb044bkVBSWFBMVJTV1RnNGNLaGw&curr=TRY&hl=en&gl=TR&gsas=1",
+      "query_cabin": "economy",
+      "query_adults": 1,
+      "query_include_basic_economy": false
+    },
+    {
+      "origin": "IST",
+      "destination": "JTR",
+      "destination_city": "Santorini",
+      "destination_country": "Greece",
+      "departure_date": "2027-04-01",
+      "return_date": "2027-04-10",
+      "price": 8683,
+      "typical_price": 12942,
+      "discount_pct": 33,
+      "airlines": [
+        "A3"
+      ],
+      "airline_names": [
+        "Aegean"
+      ],
+      "duration_minutes": 75,
+      "stops": 0,
+      "trip_days": 9,
+      "destination_region": "europe",
+      "currency": "TRY",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTA0LTAxagcIARIDSVNUcgwIAhIIL20vMDcwdDkaIxIKMjAyNy0wNC0xMGoMCAISCC9tLzA3MHQ5cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFNEdnc0kvdjQwRUFJYUExUlNXVGc0Y0l1SEFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -450,7 +502,7 @@
       "destination_country": "Croatia",
       "departure_date": "2027-01-07",
       "return_date": "2027-01-14",
-      "price": 10345,
+      "price": 10277,
       "typical_price": 15436,
       "discount_pct": 33,
       "airlines": [
@@ -464,7 +516,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTA3agcIARIDSVNUcg0IAhIJL20vMDFnX2szGiQSCjIwMjctMDEtMTRqDQgCEgkvbS8wMWdfazNyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEUzR2dzSTRaRS9FQUlhQTFSU1dUZzRjUEtnQVE9PQ&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhokEgoyMDI3LTAxLTA3agcIARIDSVNUcg0IAhIJL20vMDFnX2szGiQSCjIwMjctMDEtMTRqDQgCEgkvbS8wMWdfazNyBwgBEgNJU1RAAUgBUgNUUll6gAFDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEU1R2dzSTc5dytFQUlhQTFSU1dUZzRjUE9mQVE9PQ&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -476,7 +528,7 @@
       "destination_country": "Germany",
       "departure_date": "2026-12-24",
       "return_date": "2026-12-31",
-      "price": 11760,
+      "price": 11755,
       "typical_price": 17473,
       "discount_pct": 33,
       "airlines": [
@@ -490,7 +542,59 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMDliOW0aIxIKMjAyNi0xMi0zMWoMCAISCC9tLzA5YjltcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFNEdnc0loZU5IRUFJYUExUlNXVGc0Y1BLMkFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMDliOW0aIxIKMjAyNi0xMi0zMWoMCAISCC9tLzA5YjltcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJd0dnc0l5TjlIRUFJYUExUlNXVGc0Y1BLMkFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "query_cabin": "economy",
+      "query_adults": 1,
+      "query_include_basic_economy": false
+    },
+    {
+      "origin": "IST",
+      "destination": "JAX",
+      "destination_city": "Jacksonville",
+      "destination_country": "United States",
+      "departure_date": "2026-12-03",
+      "return_date": "2026-12-09",
+      "price": 37089,
+      "typical_price": 55609,
+      "discount_pct": 33,
+      "airlines": [
+        "DL"
+      ],
+      "airline_names": [
+        "Delta"
+      ],
+      "duration_minutes": 1103,
+      "stops": 2,
+      "trip_days": 6,
+      "destination_region": "north-america",
+      "currency": "TRY",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMGdnaDMaIxIKMjAyNi0xMi0wOWoMCAISCC9tLzBnZ2gzcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJeEdnd0l6Sy9pQVJBQ0dnTlVVbGs0T0hDR3dRUT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "query_cabin": "economy",
+      "query_adults": 1,
+      "query_include_basic_economy": false
+    },
+    {
+      "origin": "IST",
+      "destination": "SKG",
+      "destination_city": "Thessaloniki",
+      "destination_country": "Greece",
+      "departure_date": "2027-02-22",
+      "return_date": "2027-03-01",
+      "price": 6011,
+      "typical_price": 8796,
+      "discount_pct": 32,
+      "airlines": [
+        "A3"
+      ],
+      "airline_names": [
+        "Aegean"
+      ],
+      "duration_minutes": 90,
+      "stops": 0,
+      "trip_days": 7,
+      "destination_region": "europe",
+      "currency": "TRY",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAyLTIyagcIARIDSVNUcgwIAhIIL20vMGIybWMaIxIKMjAyNy0wMy0wMWoMCAISCC9tLzBiMm1jcgcIARIDSVNUQAFIAVIDVFJZenxDalJJTUVwamVYTlllV2xCY1RSQlIxbGpUbWRDUnkwdExTMHRMUzF2ZVdkaU1pMXVNVUZCUVVGQlIzSjZZVlZyUmtZMVNHVkJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEl5R2dzSXl0Y2tFQUlhQTFSU1dUZzRjTUpk&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -502,7 +606,7 @@
       "destination_country": "France",
       "departure_date": "2027-01-18",
       "return_date": "2027-01-27",
-      "price": 8512,
+      "price": 8459,
       "typical_price": 12453,
       "discount_pct": 32,
       "airlines": [
@@ -516,85 +620,33 @@
       "trip_days": 9,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTE4agcIARIDSVNUcgwIAhIIL20vMGhxenIaIxIKMjAyNy0wMS0yN2oMCAISCC9tLzBocXpycgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRFNUdnc0kvZmt6RUFJYUExUlNXVGc0Y0xHRUFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTE4agcIARIDSVNUcgwIAhIIL20vMGhxenIaIxIKMjAyNy0wMS0yN2oMCAISCC9tLzBocXpycgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJekdnc0krTTh6RUFJYUExUlNXVGc0Y015REFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
     },
     {
       "origin": "IST",
-      "destination": "JTR",
-      "destination_city": "Santorini",
-      "destination_country": "Greece",
-      "departure_date": "2027-04-01",
-      "return_date": "2027-04-10",
-      "price": 8740,
-      "typical_price": 12942,
+      "destination": "ALC",
+      "destination_city": "Alicante",
+      "destination_country": "Spain",
+      "departure_date": "2026-12-04",
+      "return_date": "2026-12-11",
+      "price": 10771,
+      "typical_price": 15760,
       "discount_pct": 32,
       "airlines": [
-        "A3"
+        "JU"
       ],
       "airline_names": [
-        "Aegean"
+        "Air Serbia"
       ],
-      "duration_minutes": 75,
-      "stops": 0,
-      "trip_days": 9,
-      "destination_region": "europe",
-      "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTA0LTAxagcIARIDSVNUcgwIAhIIL20vMDcwdDkaIxIKMjAyNy0wNC0xMGoMCAISCC9tLzA3MHQ5cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJd0dnc0kxcXMxRUFJYUExUlNXVGc0Y1BhSEFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
-      "query_cabin": "economy",
-      "query_adults": 1,
-      "query_include_basic_economy": false
-    },
-    {
-      "origin": "IST",
-      "destination": "JAX",
-      "destination_city": "Jacksonville",
-      "destination_country": "United States",
-      "departure_date": "2026-12-03",
-      "return_date": "2026-12-09",
-      "price": 37635,
-      "typical_price": 55609,
-      "discount_pct": 32,
-      "airlines": [
-        "DL"
-      ],
-      "airline_names": [
-        "Delta"
-      ],
-      "duration_minutes": 1103,
-      "stops": 2,
-      "trip_days": 6,
-      "destination_region": "north-america",
-      "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMGdnaDMaIxIKMjAyNi0xMi0wOWoMCAISCC9tLzBnZ2gzcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJeEdnd0k1ZG5sQVJBQ0dnTlVVbGs0T0hDb3lRUT0&curr=TRY&hl=en&gl=TR&gsas=1",
-      "query_cabin": "economy",
-      "query_adults": 1,
-      "query_include_basic_economy": false
-    },
-    {
-      "origin": "IST",
-      "destination": "SKG",
-      "destination_city": "Thessaloniki",
-      "destination_country": "Greece",
-      "departure_date": "2027-02-22",
-      "return_date": "2027-03-01",
-      "price": 6050,
-      "typical_price": 8796,
-      "discount_pct": 31,
-      "airlines": [
-        "A3"
-      ],
-      "airline_names": [
-        "Aegean"
-      ],
-      "duration_minutes": 90,
-      "stops": 0,
+      "duration_minutes": 340,
+      "stops": 1,
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAyLTIyagcIARIDSVNUcgwIAhIIL20vMGIybWMaIxIKMjAyNy0wMy0wMWoMCAISCC9tLzBiMm1jcgcIARIDSVNUQAFIAVIDVFJZenxDalJJVkhjNE56Qm5iMjl2Y0VWQlJVOU5iSGRDUnkwdExTMHRMUzF2ZVdka055MXVNVUZCUVVGQlIzSjZRMEZWU1RBdFNrZEJFaE5FWldGc1EyOXVjM1J5WVdsdWRITXdMVEl5R2dzSXdmWWtFQUlhQTFSU1dUZzRjSXhl&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhoiEgoyMDI2LTEyLTA0agcIARIDSVNUcgsIAhIHL20vMHpjNhoiEgoyMDI2LTEyLTExagsIAhIHL20vMHpjNnIHCAESA0lTVEABSAFSA1RSWXqAAUNqUklNRXBqZVhOWWVXbEJjVFJCUjFsalRtZENSeTB0TFMwdExTMXZlV2RpTWkxdU1VRkJRVUZCUjNKNllWVnJSa1kxU0dWQkVoTkVaV0ZzUTI5dWMzUnlZV2x1ZEhNd0xUSTBHZ3NJMXQ1QkVBSWFBMVJTV1RnNGNNcW5BUT09&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -620,7 +672,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTE4agcIARIDSVNUcgwIAhIIL20vMGIxbWYaIxIKMjAyNy0wMS0yNWoMCAISCC9tLzBiMW1mcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJekdnc0lpTkUrRUFJYUExUlNXVGc0Y00yZkFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTE4agcIARIDSVNUcgwIAhIIL20vMGIxbWYaIxIKMjAyNy0wMS0yNWoMCAISCC9tLzBiMW1mcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJMUdnc0lpTkUrRUFJYUExUlNXVGc0Y05TZkFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -646,7 +698,7 @@
       "trip_days": 6,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTE4agcIARIDSVNUcgwIAhIIL20vMGM2MzAaIxIKMjAyNy0wMS0yNGoMCAISCC9tLzBjNjMwcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJMEdnc0kyc3RNRUFJYUExUlNXVGc0Y0pYREFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI3LTAxLTE4agcIARIDSVNUcgwIAhIIL20vMGM2MzAaIxIKMjAyNy0wMS0yNGoMCAISCC9tLzBjNjMwcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJMkdnc0kyc3RNRUFJYUExUlNXVGc0Y0ovREFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -658,7 +710,7 @@
       "destination_country": "United Kingdom",
       "departure_date": "2026-12-24",
       "return_date": "2026-12-31",
-      "price": 15728,
+      "price": 15722,
       "typical_price": 22947,
       "discount_pct": 31,
       "airlines": [
@@ -672,7 +724,7 @@
       "trip_days": 7,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMDFsNjMaIxIKMjAyNi0xMi0zMWoMCAISCC9tLzAxbDYzcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJMUdnc0lxUDlmRUFJYUExUlNXVGc0Y003MEFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTI0agcIARIDSVNUcgwIAhIIL20vMDFsNjMaIxIKMjAyNi0xMi0zMWoMCAISCC9tLzAxbDYzcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJM0dnc0kxdnBmRUFJYUExUlNXVGc0Y003MEFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -684,7 +736,7 @@
       "destination_country": "United States",
       "departure_date": "2026-12-03",
       "return_date": "2026-12-09",
-      "price": 37334,
+      "price": 37079,
       "typical_price": 54059,
       "discount_pct": 31,
       "airlines": [
@@ -698,57 +750,7 @@
       "trip_days": 6,
       "destination_region": "north-america",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMHJtYnkaIxIKMjAyNi0xMi0wOWoMCAISCC9tLzBybWJ5cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJMkdnd0l2KzdqQVJBQ0dnTlVVbGs0T0hEUnhBUT0&curr=TRY&hl=en&gl=TR&gsas=1",
-      "query_cabin": "economy",
-      "query_adults": 1,
-      "query_include_basic_economy": false
-    },
-    {
-      "origin": "IST",
-      "destination": "KEF",
-      "destination_city": "Reykjav\u00edk",
-      "destination_country": "Iceland",
-      "departure_date": "2026-12-13",
-      "return_date": "2026-12-22",
-      "price": 19826,
-      "typical_price": 28240,
-      "discount_pct": 30,
-      "airlines": [
-        "*"
-      ],
-      "airline_names": [],
-      "duration_minutes": 695,
-      "stops": 1,
-      "trip_days": 9,
-      "destination_region": "europe",
-      "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTEzagcIARIDSVNUcgwIAhIIL20vMDZmbGcaIxIKMjAyNi0xMi0yMmoMCAISCC9tLzA2ZmxncgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJM0dnc0lpSUY1RUFJYUExUlNXVGc0Y0syMEFnPT0&curr=TRY&hl=en&gl=TR&gsas=1",
-      "query_cabin": "economy",
-      "query_adults": 1,
-      "query_include_basic_economy": false
-    },
-    {
-      "origin": "IST",
-      "destination": "GIG",
-      "destination_city": "Rio de Janeiro",
-      "destination_country": "Brazil",
-      "departure_date": "2026-12-03",
-      "return_date": "2026-12-10",
-      "price": 46335,
-      "typical_price": 66454,
-      "discount_pct": 30,
-      "airlines": [
-        "LH"
-      ],
-      "airline_names": [
-        "Lufthansa"
-      ],
-      "duration_minutes": 1025,
-      "stops": 1,
-      "trip_days": 7,
-      "destination_region": "latin-america",
-      "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMDZnbXIaIxIKMjAyNi0xMi0xMGoMCAISCC9tLzA2Z21ycgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJNEdnd0kzZWFhQWhBQ0dnTlVVbGs0T0hEUTBBVT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTEyLTAzagcIARIDSVNUcgwIAhIIL20vMHJtYnkaIxIKMjAyNi0xMi0wOWoMCAISCC9tLzBybWJ5cgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJNEdnd0kxYWZpQVJBQ0dnTlVVbGs0T0hEeXdBUT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
@@ -760,9 +762,9 @@
       "destination_country": "United Kingdom",
       "departure_date": "2026-11-23",
       "return_date": "2026-12-02",
-      "price": 10562,
+      "price": 10490,
       "typical_price": 14915,
-      "discount_pct": 29,
+      "discount_pct": 30,
       "airlines": [
         "*"
       ],
@@ -772,7 +774,7 @@
       "trip_days": 9,
       "destination_region": "europe",
       "currency": "TRY",
-      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTExLTIzagcIARIDSVNUcgwIAhIIL20vMGszM3AaIxIKMjAyNi0xMi0wMmoMCAISCC9tLzBrMzNwcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSVZIYzROekJuYjI5dmNFVkJSVTlOYkhkQ1J5MHRMUzB0TFMxdmVXZGtOeTF1TVVGQlFVRkJSM0o2UTBGVlNUQXRTa2RCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJNUdnc0l5THRBRUFJYUExUlNXVGc0Y0tLa0FRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
+      "booking_url": "https://www.google.com/travel/flights?tfs=CCoQAhojEgoyMDI2LTExLTIzagcIARIDSVNUcgwIAhIIL20vMGszM3AaIxIKMjAyNi0xMi0wMmoMCAISCC9tLzBrMzNwcgcIARIDSVNUQAFIAVIDVFJZeoABQ2pSSU1FcGplWE5ZZVdsQmNUUkJSMWxqVG1kQ1J5MHRMUzB0TFMxdmVXZGlNaTF1TVVGQlFVRkJSM0o2WVZWclJrWTFTR1ZCRWhORVpXRnNRMjl1YzNSeVlXbHVkSE13TFRJNUdnc0lxSU5BRUFJYUExUlNXVGc0Y0p1akFRPT0&curr=TRY&hl=en&gl=TR&gsas=1",
       "query_cabin": "economy",
       "query_adults": 1,
       "query_include_basic_economy": false
