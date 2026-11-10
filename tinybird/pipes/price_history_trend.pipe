@@ -1,0 +1,14 @@
+NODE trend_node
+SQL >
+    SELECT
+        min(price) AS lowest_price,
+        max(price) AS highest_price,
+        avg(price) AS avg_price,
+        count() AS observation_count
+    FROM price_history
+    WHERE origin = {{ String(origin) }}
+      AND destination = {{ String(destination) }}
+      AND departure_date = {{ String(departure_date) }}
+      AND observed_at >= now() - INTERVAL {{ Int32(days) }} DAY
+
+TYPE ENDPOINT
