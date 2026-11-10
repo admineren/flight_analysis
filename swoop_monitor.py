@@ -11,9 +11,9 @@ from swoop import (
     TransportConfig,
 )
 
-SEARCH_STATE_FILE = "swoop_search_state.json"
-DEALS_STATE_FILE = "swoop_deals_state.json"
-VISA_DATA_FILE = "visa_data.json"
+SEARCH_STATE_FILE = os.path.join("data", "swoop_search_state.json")
+DEALS_STATE_FILE = os.path.join("data", "swoop_deals_state.json")
+VISA_DATA_FILE = os.path.join("data", "visa_data.json")
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
