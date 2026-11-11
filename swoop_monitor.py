@@ -124,21 +124,41 @@ def resolve_dates(route):
     depart = today + timedelta(days=route["departure_offset_days"])
     return depart, depart + timedelta(days=route["stay_days"])
 
-def _search_roundtrip(origin, dest, depart_date, return_date):
-    """Tek çağrıda gerçek gidiş-dönüş bundle fiyatı al."""
-    try:
+def _search_roundtrip_details(origin, dest, depart_date, return_date):
+    """Tek çağrıda bundle fiyat + detay (havayolu, süre, aktarma)."""
+    def _do_search():
         out = swoop_search(origin, dest, depart_date, return_date=return_date)
         if not out.results:
             return None
-        prices = [opt.price for opt in out.results if opt.price]
-        return min(prices) if prices else None
+        valid = [(opt.price, opt) for opt in out.results if opt.price]
+        if not valid:
+            return None
+        valid.sort(key=lambda x: x[0])
+        min_price, min_opt = valid[0]
+        
+        details = {
+            "price": min_price,
+            "airline": "?",
+            "duration_minutes": None,
+            "stops": None,
+        }
+        
+        if min_opt.legs:
+            itin = min_opt.legs[0].itinerary
+            if itin:
+                details["airline"] = ", ".join(itin.airline_names) if itin.airline_names else "?"
+                details["duration_minutes"] = itin.travel_time
+                details["stops"] = itin.stop_count
+        
+        return details
+    
+    try:
+        return _do_search()
     except Exception as e:
         print(f"    [Search Hata] {origin}->{dest}: {type(e).__name__}: {str(e)[:80]}", flush=True)
         time.sleep(5)
         try:
-            out = swoop_search(origin, dest, depart_date, return_date=return_date)
-            prices = [opt.price for opt in out.results if opt.price]
-            return min(prices) if prices else None
+            return _do_search()
         except Exception:
             print(f"    [Search Retry Hata] {origin}->{dest}", flush=True)
             return None
@@ -159,27 +179,40 @@ def check_search():
         if idx > 0:
             time.sleep(REQUEST_DELAY)
 
-        # TEK ÇAĞRI: gerçek gidiş-dönüş bundle
-        total_tl = _search_roundtrip(
+        details = _search_roundtrip_details(
             route["origin"], route["destination"],
             str(depart), str(ret_date),
         )
 
-        if total_tl is None:
+        if not details:
             print(f"    Sonuç yok veya hata alındı.", flush=True)
             continue
 
-        print(f"    Bulunan Fiyat: {total_tl:,.0f} TL", flush=True)
+        total_tl = details["price"]
+        print(f"    Bulunan Fiyat: {total_tl:,.0f} TL | {details['airline']}", flush=True)
 
         prev = state.get(state_key, {})
         was_below = prev.get("below_threshold", False)
         below = total_tl <= route["max_price_tl"]
 
         if not first_run and below and not was_below:
+            # Zengin bildirim
+            airline = details["airline"]
+            stops_str = f"{details['stops']} aktarma" if details["stops"] is not None else "?"
+            if details["stops"] == 0:
+                stops_str = "Direkt"
+            
+            if details["duration_minutes"]:
+                h, m = divmod(int(details["duration_minutes"]), 60)
+                dur_str = f"{h}s {m:02d}dk"
+            else:
+                dur_str = "?"
+            
             send_telegram(
                 f"✈️ <b>[Swoop Search] {name}</b>\n"
                 f"📅 {depart} → {ret_date}\n"
                 f"💰 <b>{total_tl:,.0f} TL</b>\n"
+                f"🛫 {airline} | {stops_str} | {dur_str}\n"
                 f"⚠️ <i>Google TR fiyatı, doğrula</i>"
             )
             alerts += 1
@@ -244,44 +277,69 @@ def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
     return msg
 
 def check_deals():
-    print("--- Swoop Deals Başladı ---")
+    print("--- Swoop Deals Başladı ---", flush=True)
     max_retries = 3
     
-    # Cache durumunu kontrol et (ilk çalıştırma mı?)
     cache_exists = os.path.exists(DEALS_STATE_FILE) and os.path.getsize(DEALS_STATE_FILE) > 100
-    print(f"  Cache durumu: {'Mevcut' if cache_exists else 'Yok (ilk çalıştırma)'}")
+    print(f"  Cache durumu: {'Mevcut' if cache_exists else 'Yok (ilk çalıştırma)'}", flush=True)
     
     for attempt in range(max_retries):
         try:
-            print(f"  Google Flights'tan fırsatlar çekiliyor (Deneme {attempt+1}/{max_retries})...")
+            print(f"  Google Flights'tan fırsatlar çekiliyor (Deneme {attempt+1}/{max_retries})...", flush=True)
             result = deals("IST", transport=TransportConfig(country="TR"))
             
             if not result.deals: 
-                print("  Hiç deal bulunamadı.")
+                print("  Hiç deal bulunamadı.", flush=True)
                 return 0
 
-            print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...")
+            print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...", flush=True)
             
-            # Cache yoksa ilk çalıştırma gibi davran (sessiz), varsa normal diff yap
             if not cache_exists:
                 diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
-                print(f"  İlk kayıt yapıldı ({len(diff.new)} deal). Bildirim gönderilmiyor.")
+                print(f"  İlk kayıt yapıldı ({len(diff.new)} deal). Bildirim gönderilmiyor.", flush=True)
                 return 0
             
             diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=False)
-            
-            print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}")
-            alerts = 0
+            print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}", flush=True)
 
-            # 1. YENİ DEAL'LER
+            # ============================================================
+            # YENİ DEAL'LER: Süz, sırala, ilk N'i gönder
+            # ============================================================
+            passed_new = []
+            rejected_reasons = {}
+            
             for d in diff.new:
                 ok, label = _deal_passes_filters(d)
-                if ok and alerts < MAX_NOTIFY:
-                    send_telegram(_format_deal_msg(d, label))
-                    print(f"    ✅ YENİ: {d.destination_city} ({label})")
-                    alerts += 1
+                if ok:
+                    passed_new.append((d, label))
+                else:
+                    # Eleme sebeplerini say
+                    reason_key = label.split(":")[0] if ":" in label else label
+                    rejected_reasons[reason_key] = rejected_reasons.get(reason_key, 0) + 1
+            
+            print(f"  Yeni filtreden geçen: {len(passed_new)} / {len(diff.new)}", flush=True)
+            if rejected_reasons:
+                print(f"  Eleme sebepleri: {rejected_reasons}", flush=True)
+            
+            # EN YÜKSEK İNDİRİMLİ ilk N tanesini seç
+            passed_new.sort(key=lambda x: -(x[0].discount_pct or 0))
+            
+            alerts = 0
+            for d, label in passed_new[:MAX_NOTIFY]:
+                send_telegram(_format_deal_msg(d, label))
+                print(f"    ✅ YENİ: {d.destination_city} (%{d.discount_pct})", flush=True)
+                alerts += 1
+            
+            if len(passed_new) > MAX_NOTIFY:
+                send_telegram(
+                    f"ℹ️ Toplam {len(passed_new)} yeni fırsat var; "
+                    f"en yüksek indirimli {MAX_NOTIFY} tanesi gönderildi."
+                )
 
-            # 2. FİYAT DEĞİŞİMLERİ (SADECE DÜŞÜŞLER)
+            # ============================================================
+            # FİYAT DEĞİŞİMLERİ: Sadece düşüşler, sırala, ilk N
+            # ============================================================
+            passed_changes = []
             for pc in diff.price_changes:
                 d = getattr(pc, "deal", None) or getattr(pc, "current", None)
                 if not d: continue
@@ -289,32 +347,38 @@ def check_deals():
                 old_p = getattr(pc, "old_price", None) or getattr(pc, "prior_price", None)
                 new_p = getattr(pc, "new_price", None) or d.price
                 
-                # SADECE DÜŞÜŞLERİ BİLDİR (artışları yoksay)
                 if not old_p or not new_p or new_p >= old_p:
                     continue
                 
                 ok, label = _deal_passes_filters(d)
-                if ok and alerts < MAX_NOTIFY:
+                if ok:
                     drop_pct = (old_p - new_p) / old_p * 100
-                    extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
-                    send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
-                    print(f"    📉 DÜŞÜŞ: {d.destination_city} ({old_p:,} → {new_p:,})")
-                    alerts += 1
+                    passed_changes.append((d, label, old_p, new_p, drop_pct))
+            
+            # En yüksek düşüş yüzdesine göre sırala
+            passed_changes.sort(key=lambda x: -x[4])
+            
+            for d, label, old_p, new_p, drop_pct in passed_changes[:MAX_NOTIFY]:
+                if alerts >= MAX_NOTIFY: break
+                extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
+                send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
+                print(f"    📉 DÜŞÜŞ: {d.destination_city} ({old_p:,} → {new_p:,})", flush=True)
+                alerts += 1
 
-            print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---")
+            print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---", flush=True)
             return alerts
             
         except Exception as e:
             err_msg = str(e)
             if "gRPC status 13" in err_msg or "INTERNAL" in err_msg:
                 if attempt < max_retries - 1:
-                    print(f"  ⚠️ Google geçici hata. 10 saniye bekleniyor...")
+                    print(f"  ⚠️ Google geçici hata. 10 saniye bekleniyor...", flush=True)
                     time.sleep(10)
                 else:
-                    print(f"--- Swoop Deals HATA: Rate limit, atlanıyor. ---")
+                    print(f"--- Swoop Deals HATA: Rate limit, atlanıyor. ---", flush=True)
                     return 0
             else:
-                print(f"--- Swoop Deals HATA: {err_msg} ---")
+                print(f"--- Swoop Deals HATA: {err_msg} ---", flush=True)
                 return 0
 
 # ============================================================
