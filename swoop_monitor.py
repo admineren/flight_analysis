@@ -124,25 +124,27 @@ def resolve_dates(route):
     depart = today + timedelta(days=route["departure_offset_days"])
     return depart, depart + timedelta(days=route["stay_days"])
 
-def _search_leg(origin, dest, date_str):
+def _search_roundtrip(origin, dest, depart_date, return_date):
+    """Tek çağrıda gerçek gidiş-dönüş bundle fiyatı al."""
     try:
-        out = swoop_search(origin, dest, date_str)
-        if not out.results: return None
+        out = swoop_search(origin, dest, depart_date, return_date=return_date)
+        if not out.results:
+            return None
         prices = [opt.price for opt in out.results if opt.price]
         return min(prices) if prices else None
     except Exception as e:
-        print(f"    [Search Hata] {origin}->{dest}: {type(e).__name__}")
+        print(f"    [Search Hata] {origin}->{dest}: {type(e).__name__}: {str(e)[:80]}", flush=True)
         time.sleep(5)
         try:
-            out = swoop_search(origin, dest, date_str)
+            out = swoop_search(origin, dest, depart_date, return_date=return_date)
             prices = [opt.price for opt in out.results if opt.price]
             return min(prices) if prices else None
-        except Exception: 
-            print(f"    [Search Retry Hata] {origin}->{dest}")
+        except Exception:
+            print(f"    [Search Retry Hata] {origin}->{dest}", flush=True)
             return None
 
 def check_search():
-    print("--- Swoop Search Başladı ---")
+    print("--- Swoop Search Başladı ---", flush=True)
     state = _load_state(SEARCH_STATE_FILE)
     first_run = not os.path.exists(SEARCH_STATE_FILE)
     alerts = 0
@@ -151,22 +153,24 @@ def check_search():
         name = route["name"]
         depart, ret_date = resolve_dates(route)
         state_key = f"{name}|{depart}|{ret_date}"
-        
-        print(f"  [{name}] kontrol ediliyor ({depart} → {ret_date})...")
 
-        if idx > 0: time.sleep(REQUEST_DELAY)
+        print(f"  [{name}] kontrol ediliyor ({depart} → {ret_date})...", flush=True)
 
-        out_min = _search_leg(route["origin"], route["destination"], str(depart))
-        time.sleep(1)
-        ret_min = _search_leg(route["destination"], route["origin"], str(ret_date))
+        if idx > 0:
+            time.sleep(REQUEST_DELAY)
 
-        if out_min is None or ret_min is None: 
-            print(f"    Sonuç yok veya hata alındı.")
+        # TEK ÇAĞRI: gerçek gidiş-dönüş bundle
+        total_tl = _search_roundtrip(
+            route["origin"], route["destination"],
+            str(depart), str(ret_date),
+        )
+
+        if total_tl is None:
+            print(f"    Sonuç yok veya hata alındı.", flush=True)
             continue
 
-        total_tl = out_min + ret_min
-        print(f"    Bulunan Fiyat: {total_tl:,.0f} TL")
-        
+        print(f"    Bulunan Fiyat: {total_tl:,.0f} TL", flush=True)
+
         prev = state.get(state_key, {})
         was_below = prev.get("below_threshold", False)
         below = total_tl <= route["max_price_tl"]
@@ -183,7 +187,7 @@ def check_search():
         state[state_key] = {"last_tl": total_tl, "below_threshold": below}
 
     _save_state(SEARCH_STATE_FILE, state)
-    print(f"--- Swoop Search Bitti ({alerts} bildirim) ---")
+    print(f"--- Swoop Search Bitti ({alerts} bildirim) ---", flush=True)
     return alerts
 
 # ============================================================
@@ -215,15 +219,27 @@ def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
     typical_str = f", normal {_price_display(d.typical_price, d.currency)}" if d.typical_price else ""
     disclaimer = "<i>⚠️ Resmi olmayan veri. Kurallar değişebilir; seyahatten önce resmi makamlardan teyit edin.</i>"
 
+    # YENİ: Aktarma, süre, kalış günü
+    stops_str = f"{d.stops} aktarma" if d.stops is not None else "?"
+    if d.duration_minutes:
+        h, m = divmod(int(d.duration_minutes), 60)
+        dur_str = f"{h}s {m:02d}dk"
+    else:
+        dur_str = "?"
+    days_str = f"{d.trip_days} gece" if d.trip_days is not None else "?"
+
     country_display = f" ({d.destination_country})" if d.destination_country else ""
     msg = (
         f"{prefix_emoji} <b>[Swoop Deals] IST → {d.destination_city}{country_display}</b>\n"
         f"📅 {d.departure_date} → {d.return_date}\n"
         f"💰 <b>{price_str}</b>{typical_str} (<b>%{d.discount_pct or 0}</b>)\n"
-        f"🛫 {airlines}\n"
+        f"🛫 {airlines} | {stops_str} | {dur_str} | {days_str}\n"
         f"🛂 <b>{visa_label}</b>"
     )
-    if extra_info: msg += f"\n{extra_info}"
+    if d.booking_url:
+        msg += f"\n🔗 <a href='{d.booking_url}'>Rezervasyon</a>"
+    if extra_info:
+        msg += f"\n{extra_info}"
     msg += f"\n\n{disclaimer}"
     return msg
 
