@@ -279,100 +279,123 @@ def _format_deal_msg(d, visa_label, prefix_emoji="🎯", extra_info=""):
 def check_deals():
     print("--- Swoop Deals Başladı ---", flush=True)
     max_retries = 3
-    
+
+    # Cache durumu kontrolü
     cache_exists = os.path.exists(DEALS_STATE_FILE) and os.path.getsize(DEALS_STATE_FILE) > 100
     print(f"  Cache durumu: {'Mevcut' if cache_exists else 'Yok (ilk çalıştırma)'}", flush=True)
-    
+
     for attempt in range(max_retries):
         try:
             print(f"  Google Flights'tan fırsatlar çekiliyor (Deneme {attempt+1}/{max_retries})...", flush=True)
             result = deals("IST", transport=TransportConfig(country="TR"))
-            
-            if not result.deals: 
+
+            if not result.deals:
                 print("  Hiç deal bulunamadı.", flush=True)
                 return 0
 
             print(f"  {len(result.deals)} adet deal alındı. Filtreleme yapılıyor...", flush=True)
-            
+
+            # İlk çalıştırma: sessizce cache oluştur
             if not cache_exists:
                 diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=True)
                 print(f"  İlk kayıt yapıldı ({len(diff.new)} deal). Bildirim gönderilmiyor.", flush=True)
                 return 0
-            
+
+            # Normal diff
             diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=False)
             print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}", flush=True)
 
+            alerts = 0
+
             # ============================================================
-            # YENİ DEAL'LER: Süz, sırala, ilk N'i gönder
+            # 1. YENİ DEAL'LER — filtrele, indirime göre sırala, ilk N
             # ============================================================
             passed_new = []
-            rejected_reasons = {}
-            
+            rejected_new = {}
+
             for d in diff.new:
                 ok, label = _deal_passes_filters(d)
                 if ok:
                     passed_new.append((d, label))
                 else:
-                    # Eleme sebeplerini say
-                    reason_key = label.split(":")[0] if ":" in label else label
-                    rejected_reasons[reason_key] = rejected_reasons.get(reason_key, 0) + 1
-            
+                    reason_key = label.split(":")[0].split("(")[0].strip() if label else "bilinmiyor"
+                    rejected_new[reason_key] = rejected_new.get(reason_key, 0) + 1
+                    print(f"    ❌ YENİ elendi: {d.destination_city} — {label}", flush=True)
+
             print(f"  Yeni filtreden geçen: {len(passed_new)} / {len(diff.new)}", flush=True)
-            if rejected_reasons:
-                print(f"  Eleme sebepleri: {rejected_reasons}", flush=True)
-            
-            # EN YÜKSEK İNDİRİMLİ ilk N tanesini seç
+            if rejected_new:
+                print(f"  Yeni eleme sebepleri: {rejected_new}", flush=True)
+
+            # En yüksek indirimliden başlayarak sırala
             passed_new.sort(key=lambda x: -(x[0].discount_pct or 0))
-            
-            alerts = 0
+
             for d, label in passed_new[:MAX_NOTIFY]:
                 send_telegram(_format_deal_msg(d, label))
                 print(f"    ✅ YENİ: {d.destination_city} (%{d.discount_pct})", flush=True)
                 alerts += 1
-            
+
             if len(passed_new) > MAX_NOTIFY:
                 send_telegram(
-                    f"ℹ️ Toplam {len(passed_new)} yeni fırsat var; "
+                    f"ℹ️ <b>Swoop Deals</b>: Toplam {len(passed_new)} yeni fırsat var; "
                     f"en yüksek indirimli {MAX_NOTIFY} tanesi gönderildi."
                 )
+                print(f"    ⚠️ {len(passed_new) - MAX_NOTIFY} yeni fırsat MAX_NOTIFY nedeniyle gösterilmedi", flush=True)
 
             # ============================================================
-            # FİYAT DEĞİŞİMLERİ: Sadece düşüşler, sırala, ilk N
+            # 2. FİYAT DEĞİŞİMLERİ — sadece düşüşler, sırala, ilk N
             # ============================================================
             passed_changes = []
+            rejected_changes = {}
+
             for pc in diff.price_changes:
                 d = getattr(pc, "deal", None) or getattr(pc, "current", None)
-                if not d: continue
-                
+                if not d:
+                    continue
+
                 old_p = getattr(pc, "old_price", None) or getattr(pc, "prior_price", None)
                 new_p = getattr(pc, "new_price", None) or d.price
-                
+
+                # Fiyat düşmediyse atla
                 if not old_p or not new_p or new_p >= old_p:
+                    rejected_changes["fiyat artmadı/aynı"] = rejected_changes.get("fiyat artmadı/aynı", 0) + 1
                     continue
-                
+
                 ok, label = _deal_passes_filters(d)
                 if ok:
                     drop_pct = (old_p - new_p) / old_p * 100
                     passed_changes.append((d, label, old_p, new_p, drop_pct))
-            
+                    print(f"    📊 Price change geçti: {d.destination_city} ({old_p:,} → {new_p:,}, %{drop_pct:.0f})", flush=True)
+                else:
+                    reason_key = label.split(":")[0].split("(")[0].strip() if label else "bilinmiyor"
+                    rejected_changes[reason_key] = rejected_changes.get(reason_key, 0) + 1
+                    print(f"    ❌ Price change elendi: {d.destination_city} — {label}", flush=True)
+
+            print(f"  Price change: {len(passed_changes)} geçti / {len(diff.price_changes)} toplam", flush=True)
+            if rejected_changes:
+                print(f"  Price change eleme sebepleri: {rejected_changes}", flush=True)
+
             # En yüksek düşüş yüzdesine göre sırala
             passed_changes.sort(key=lambda x: -x[4])
-            
+
             for d, label, old_p, new_p, drop_pct in passed_changes[:MAX_NOTIFY]:
-                if alerts >= MAX_NOTIFY: break
+                if alerts >= MAX_NOTIFY:
+                    break
                 extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
                 send_telegram(_format_deal_msg(d, label, prefix_emoji="📉", extra_info=extra))
                 print(f"    📉 DÜŞÜŞ: {d.destination_city} ({old_p:,} → {new_p:,})", flush=True)
                 alerts += 1
 
+            if len(passed_changes) > MAX_NOTIFY:
+                print(f"    ⚠️ {len(passed_changes) - MAX_NOTIFY} price change MAX_NOTIFY nedeniyle gösterilmedi", flush=True)
+
             print(f"--- Swoop Deals Bitti ({alerts} bildirim) ---", flush=True)
             return alerts
-            
+
         except Exception as e:
             err_msg = str(e)
             if "gRPC status 13" in err_msg or "INTERNAL" in err_msg:
                 if attempt < max_retries - 1:
-                    print(f"  ⚠️ Google geçici hata. 10 saniye bekleniyor...", flush=True)
+                    print(f"  ⚠️ Google geçici hata. 10 saniye bekleniyor (deneme {attempt+1}/{max_retries})...", flush=True)
                     time.sleep(10)
                 else:
                     print(f"--- Swoop Deals HATA: Rate limit, atlanıyor. ---", flush=True)
@@ -380,6 +403,7 @@ def check_deals():
             else:
                 print(f"--- Swoop Deals HATA: {err_msg} ---", flush=True)
                 return 0
+
 
 # ============================================================
 # MAIN
