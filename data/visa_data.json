@@ -620,6 +620,23 @@
           "name": "Visa not required"
         }
       },
+      "PT": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:41:52.191741+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "QA": {
         "color_at_fetch": "blue",
         "continent": "Asia",
@@ -856,14 +873,14 @@
   },
   "meta": {
     "details_stats": {
-      "fetched_this_run": 21,
-      "fetched_total": 53,
-      "last_run_at": "2026-11-12T18:00:33.228155+00:00",
+      "fetched_this_run": 1,
+      "fetched_total": 54,
+      "last_run_at": "2026-11-12T18:41:52.491889+00:00",
       "rate_limited": false,
       "remaining": 0,
-      "total": 21
+      "total": 1
     },
-    "generated_at": "2026-11-12T18:00:33.228198+00:00",
+    "generated_at": "2026-11-12T18:41:52.491922+00:00",
     "language": "en",
     "last_cleanup_at": "2026-11-12T07:41:55.750795+00:00",
     "map_fetched_at": "2026-11-12T07:06:05.397334+00:00",
