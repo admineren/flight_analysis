@@ -1,9 +1,12 @@
 import os
+import re
 import json
+import unicodedata
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 VISA_FILE = os.path.join(BASE_DIR, "data", "visa_data.json")
+ISO_CODES_FILE = os.path.join(CONFIG_DIR, "iso_codes.json")
 
 
 def _load_json(path, default=None):
@@ -15,14 +18,18 @@ def _load_json(path, default=None):
         return default if default is not None else {}
 
 
-# Config dosyalarını yükle
+# Config dosyaları
 AIRPORTS = _load_json(os.path.join(CONFIG_DIR, "airports.json"))
 COUNTRIES = _load_json(os.path.join(CONFIG_DIR, "countries.json"))
 COUNTRY_NAMES_EN = _load_json(os.path.join(CONFIG_DIR, "country_names_en.json"))
+ISO_CODES = _load_json(ISO_CODES_FILE)
 
 
-# Travel Buddy Vize Verisini Yükle
+# ─── Vize verisi ────────────────────────────────────────────────────
 VISA_MAP = {"green": set(), "blue": set(), "yellow": set(), "red": set()}
+VISA_DETAILS = {}
+VISA_LOADED = False
+
 if os.path.exists(VISA_FILE):
     try:
         with open(VISA_FILE, "r", encoding="utf-8") as f:
@@ -31,13 +38,32 @@ if os.path.exists(VISA_FILE):
             for color in ["green", "blue", "yellow", "red"]:
                 if color in colors:
                     VISA_MAP[color] = set(c.strip() for c in colors[color].split(",") if c.strip())
+            VISA_DETAILS = data.get("data", {}).get("details", {})
+        VISA_LOADED = any(VISA_MAP[c] for c in VISA_MAP)
     except Exception as e:
         print(f"Vize verisi yüklenemedi: {e}")
 
+if not VISA_LOADED:
+    print("🚨 KRİTİK: visa_data.json boş/eksik. Tüm deal'ler reddedilecek!")
 
+
+# ─── Normalize (alias toleransı) ────────────────────────────────────
+def _normalize(name):
+    if not name:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_name = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return " ".join(ascii_name.lower().replace(",", " ").split())
+
+
+_NORMALIZED_COUNTRY_MAP = {_normalize(k): v for k, v in COUNTRY_NAMES_EN.items()}
+
+
+# ─── Temel string ───────────────────────────────────────────────────
 def _get_visa_string_by_iso(iso2):
     if not iso2:
         return "❔ Bilinmiyor"
+    iso2 = iso2.upper()
     if iso2 in VISA_MAP["green"]: return "🟢 Vizesiz"
     if iso2 in VISA_MAP["blue"]: return "🔵 e-Vize/Kapıda"
     if iso2 in VISA_MAP["yellow"]: return "🟡 eTA"
@@ -46,16 +72,141 @@ def _get_visa_string_by_iso(iso2):
 
 
 def get_visa_by_country_name(country_name):
-    """Swoop için: İngilizce ülke isminden vize durumu."""
-    iso2 = COUNTRY_NAMES_EN.get(country_name)
+    if not country_name:
+        return "❔ Bilinmiyor"
+    iso2 = COUNTRY_NAMES_EN.get(country_name) or _NORMALIZED_COUNTRY_MAP.get(_normalize(country_name))
     return _get_visa_string_by_iso(iso2)
 
 
 def get_visa_by_iata(iata_code):
-    """Telegram Bot için: IATA kodundan vize + Türkçe ülke adı."""
     iso2 = AIRPORTS.get(iata_code.upper())
     if not iso2:
         return "❔ Bilinmiyor"
     name = COUNTRIES.get(iso2, iso2)
-    visa_text = _get_visa_string_by_iso(iso2)
-    return f"{visa_text} ({name})"
+    return f"{_get_visa_string_by_iso(iso2)} ({name})"
+
+
+def get_iso_by_country_name(country_name):
+    """Swoop ülke isminden ISO (alias toleranslı)."""
+    if not country_name:
+        return None
+    return COUNTRY_NAMES_EN.get(country_name) or _NORMALIZED_COUNTRY_MAP.get(_normalize(country_name))
+
+
+# ─── Duration / validity parse ──────────────────────────────────────
+_DURATION_RE = re.compile(r"(\d+)\s*(day|days|month|months|year|years)", re.I)
+
+
+def _parse_duration_days(text):
+    if not text:
+        return None
+    t = text.lower()
+    if "period of stay" in t or "valid on arrival" in t:
+        return None
+    total = 0
+    for n, unit in _DURATION_RE.findall(t):
+        n = int(n)
+        u = unit.lower()
+        if u.startswith("day"):
+            total += n
+        elif u.startswith("month"):
+            total += n * 30
+        elif u.startswith("year"):
+            total += n * 365
+    return total or None
+
+
+def _parse_validity_warning(text):
+    if not text:
+        return None
+    t = text.lower()
+    if "period of stay" in t:
+        return "Seyahat süresi kadar geçerli olmalı"
+    if "valid on arrival" in t:
+        return "Varışta geçerli olması yeterli"
+    if "longer than" in t:
+        m = re.search(r"(\d+)\s*(month|day|year)", t)
+        if m:
+            n, u = m.group(1), m.group(2).lower()
+            unit_tr = {"day": "gün", "month": "ay", "year": "yıl"}[u]
+            return f"Seyahat + {n} {unit_tr} geçerli olmalı"
+    m = re.search(r"(\d+)\s*(month|day|year)", t)
+    if m:
+        n, u = m.group(1), m.group(2).lower()
+        unit_tr = {"day": "gün", "month": "ay", "year": "yıl"}[u]
+        return f"En az {n} {unit_tr} geçerli olmalı"
+    return text
+
+
+# ─── Detaylı vize bilgisi ───────────────────────────────────────────
+def get_visa_details(iso2, trip_days=None):
+    """Zengin vize bilgisi. trip_days verilirse süre kontrolü de yapar."""
+    if not iso2:
+        return None
+    d = VISA_DETAILS.get(iso2)
+    if not d:
+        return None
+
+    primary = d.get("primary_rule", {}) or {}
+    secondary = d.get("secondary_rule") or {}
+    warnings = []
+
+    if trip_days:
+        max_days = 0
+        for rule in (primary, secondary):
+            if not rule:
+                continue
+            dur = _parse_duration_days(rule.get("duration"))
+            if dur and dur > max_days:
+                max_days = dur
+        if max_days and trip_days > max_days:
+            warnings.append(f"⚠️ Vize {max_days}g, trip {trip_days}g — yetersiz olabilir")
+
+    regs = d.get("mandatory_registrations", [])
+    names = [r.get("name", "?") for r in regs if r.get("name")]
+    if names:
+        warnings.append(f"📋 Zorunlu: {', '.join(names)}")
+
+    validity_warning = _parse_validity_warning(d.get("passport_validity"))
+    if validity_warning:
+        warnings.append(f"🛡️ Pasaport: {validity_warning}")
+
+    exceptions = d.get("exception_rules", [])
+
+    return {
+        "primary": primary,
+        "secondary": secondary,
+        "color": primary.get("color"),
+        "name": primary.get("name"),
+        "duration": primary.get("duration") or secondary.get("duration"),
+        "link": primary.get("link") or secondary.get("link"),
+        "passport_validity": d.get("passport_validity"),
+        "warnings": warnings,
+        "regs": regs,
+        "exceptions": exceptions,
+        "continent": d.get("continent"),
+        "currency_code": d.get("currency_code"),
+    }
+
+
+def is_visa_acceptable(iso2):
+    """Green/Yellow/Blue → True. Red → False (ETA-benzeri istisna ile)."""
+    d = VISA_DETAILS.get(iso2)
+    if not d:
+        return False, "detay yok"
+    primary = d.get("primary_rule", {}) or {}
+    color = primary.get("color")
+    name = (primary.get("name") or "").lower()
+    duration = (primary.get("duration") or "").lower()
+
+    if color in ("green", "yellow", "blue"):
+        return True, color
+    if color == "red":
+        # UK gibi ETA-benzeri
+        if "online" in name and ("eta" in name or "electronic" in name):
+            return True, "red-eta"
+        # "180 days" gibi uzun süreli online vize
+        if "online" in name and re.search(r"180|6\s*month", duration):
+            return True, "red-eta"
+        return False, "vize gerekli"
+    return False, f"bilinmeyen: {color}"
