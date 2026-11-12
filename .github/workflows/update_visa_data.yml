@@ -23,6 +23,11 @@ on:
         required: false
         default: ""
         type: string
+      skip_map:
+        description: "Map zaten mevcut, yeniden çekme (sadece full modunda)"
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: "0 3 * * 1"
 
@@ -49,9 +54,11 @@ jobs:
           MODE="${{ github.event.inputs.mode || 'refresh' }}"
           COUNTRIES="${{ github.event.inputs.countries }}"
           MAX="${{ github.event.inputs.max }}"
+          SKIP_MAP="${{ github.event.inputs.skip_map }}"
           ARGS=""
           [ -n "$COUNTRIES" ] && ARGS="$ARGS --countries=$COUNTRIES"
           [ -n "$MAX" ] && ARGS="$ARGS --max=$MAX"
+          [ "$SKIP_MAP" = "true" ] && ARGS="$ARGS --skip-map"
           echo "Running: python update_visa_data.py --mode=$MODE $ARGS"
           python update_visa_data.py --mode=$MODE $ARGS
       - name: Commit
