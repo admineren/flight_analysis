@@ -1,17 +1,23 @@
 import os
 import json
 import re
+import time
+import unicodedata
 import requests
 from bs4 import BeautifulSoup
+
+from visa_helper import get_visa_details, is_visa_acceptable, VISA_LOADED
 
 # --- Ucuza Uç Kaynağı ---
 UCUZAUC_URL = "https://www.ucuzauc.org/kalkis/istanbul"
 UCUZAUC_STATE_FILE = os.path.join("data", "ucuzauc_state.json")
+CITIES_TO_COUNTRIES_FILE = os.path.join("config", "cities_to_countries.json")
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-MAX_NOTIFY = 5
+UCUZAUC_MAX_NOTIFY = 20            # 5 → 20 (fırsat kaçmasın)
+UCUZAUC_DETAIL_DELAY = 0.5         # detay istekleri arası bekleme
 
 HEADERS = {
     "User-Agent": (
@@ -21,6 +27,76 @@ HEADERS = {
     ),
     "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
 }
+
+
+# ============================================================
+# ŞEHİR → ÜLKE MAP (vize için)
+# ============================================================
+def _normalize(s):
+    if not s:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", s)
+    ascii_name = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return " ".join(ascii_name.lower().replace(",", " ").split())
+
+
+def _load_city_map():
+    try:
+        with open(CITIES_TO_COUNTRIES_FILE, encoding="utf-8") as f:
+            raw = json.load(f)
+        return {_normalize(k): v for k, v in raw.items()}
+    except Exception as e:
+        print(f"⚠️ cities_to_countries.json yüklenemedi: {e}")
+        return {}
+
+
+CITY_MAP = _load_city_map()
+
+
+def _get_iso_by_city(city_name):
+    if not city_name:
+        return None
+    key = _normalize(city_name)
+    iso2 = CITY_MAP.get(key)
+    if not iso2:
+        print(f"    ⚠️ Bilinmeyen şehir: {city_name!r}", flush=True)
+    return iso2
+
+
+def _add_visa_line(msg, route_name):
+    """Bildirime vize bilgisi ekle (varsa)."""
+    iso2 = _get_iso_by_city(route_name)
+    if not iso2:
+        return msg + "\n🛂 ⚪ Vize bilgisi yok (ülke eşleşmedi)"
+
+    vd = get_visa_details(iso2)
+    if not vd:
+        return msg + f"\n🛂 ⚪ Vize bilgisi yok ({iso2})"
+
+    emoji = {"green": "🟢", "yellow": "🟡", "blue": "🔵", "red": "🔴"}.get(vd.get("color"), "⚪")
+    name = vd.get("name") or "?"
+    dur = vd.get("duration")
+    dur_str = f" ({dur})" if dur else ""
+
+    line = f"\n🛂 {emoji} {name}{dur_str}"
+
+    if vd.get("color") == "red":
+        # red ama ETA ise (GB gibi) uyarı yumuşatılır
+        acceptable, kind = is_visa_acceptable(iso2)
+        if acceptable and kind == "red-eta":
+            line += "  ℹ️ Online başvuru"
+        else:
+            line += "  ⚠️ Vize gerekli"
+
+    # Pasaport uyarısı (varsa)
+    if vd.get("passport_validity"):
+        from visa_helper import _parse_validity_warning
+        pv = _parse_validity_warning(vd.get("passport_validity"))
+        if pv:
+            line += f"\n🛡️ Pasaport: {pv}"
+
+    return msg + line
+
 
 # ============================================================
 # STATE YÖNETİMİ
@@ -40,6 +116,7 @@ def _load_json_state(path, default=None):
 
 
 def _save_json_state(path, data):
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=True)
@@ -65,6 +142,7 @@ def send_telegram(text):
             print("Telegram error:", r.status_code, r.text)
     except Exception as e:
         print("Telegram exception:", e)
+
 
 # ============================================================
 # UCUZA UÇ KATMANI
@@ -189,11 +267,22 @@ def format_ucuzauc_notification(route_name, change, detail, href):
         if detail.get("cheapest_month") and detail.get("cheapest_month_price"):
             base += f"\n🗓️ En ucuz ay: {detail['cheapest_month']} ({detail['cheapest_month_price']:,} ₺)"
 
+    # VİZE BİLGİSİ
+    base = _add_visa_line(base, route_name)
+
     url = f"https://www.ucuzauc.org{href}" if href and href.startswith("/") else (
         href or f"https://www.ucuzauc.org/ucuz-ucak-biletleri/istanbul-{route_name.lower()}"
     )
     base += f"\n🔗 {url}"
+    base += f"\n\n<i>⚠️ Resmi olmayan veri. Seyahatten önce teyit edin.</i>"
     return base
+
+
+def _change_priority(change):
+    """Düşük = önce gönderilir. Rekor > yeni fırsat > yüksek düşüş."""
+    if change["type"] == "new_record":
+        return (0, -change.get("drop_pct", 0))
+    return (1, -change.get("new_pub", 0))
 
 
 def check_ucuzauc_all():
@@ -249,8 +338,13 @@ def check_ucuzauc_all():
                 "drop_pct": drop_pct, "data": data,
             })
 
+    # Öncelik: rekor > yeni fırsat, sonra düşüş
+    changes.sort(key=_change_priority)
+
     alerts = 0
-    for change in changes[:MAX_NOTIFY]:
+    for idx, change in enumerate(changes):
+        if alerts >= UCUZAUC_MAX_NOTIFY:
+            break
         name = change["route"]
         href = change["data"].get("href")
         detail = None
@@ -261,6 +355,7 @@ def check_ucuzauc_all():
                 detail_resp = requests.get(detail_url, headers=HEADERS, timeout=30)
                 if detail_resp.status_code == 200:
                     detail = parse_ucuzauc_detail(detail_resp.text)
+                time.sleep(UCUZAUC_DETAIL_DELAY)
             except Exception as e:
                 print(f"  [{name}] detay hata: {e}")
 
@@ -268,8 +363,21 @@ def check_ucuzauc_all():
         send_telegram(msg)
         alerts += 1
 
-    if len(changes) > MAX_NOTIFY:
-        send_telegram(f"ℹ️ Ucuza Uç: {len(changes)} değişiklik, ilk {MAX_NOTIFY} gönderildi")
+    # Limit aşıldıysa özet
+    if len(changes) > UCUZAUC_MAX_NOTIFY:
+        kalan = len(changes) - UCUZAUC_MAX_NOTIFY
+        en_iyi = changes[UCUZAUC_MAX_NOTIFY:][:5]
+        liste = "\n".join(
+            f"   • {c['route']} — "
+            f"{'YENİ REKOR' if c['type']=='new_record' else 'YENİ FIRSAT'}"
+            f"{' (%' + str(int(c['drop_pct'])) + ')' if c['type']=='new_record' else ''}"
+            for c in en_iyi
+        )
+        send_telegram(
+            f"ℹ️ <b>Ucuza Uç — Özet</b>\n"
+            f"Toplam <b>{len(changes)}</b> değişiklik; ilk <b>{UCUZAUC_MAX_NOTIFY}</b> gönderildi.\n"
+            f"Kalan {kalan} arasında:\n{liste}"
+        )
 
     for name, data in routes.items():
         state[name] = {
@@ -280,7 +388,7 @@ def check_ucuzauc_all():
         }
 
     save_ucuzauc_state(state)
-    print(f"  {len(changes)} değişiklik, {alerts} bildirim")
+    print(f"  {len(changes)} değişiklik, {alerts} bildirim (limit: {UCUZAUC_MAX_NOTIFY})")
     return alerts
 
 
@@ -289,6 +397,10 @@ def check_ucuzauc_all():
 # ============================================================
 def main():
     print("=== Ucuza Uç Monitor Başladı ===")
+    if not VISA_LOADED:
+        print("⚠️ Vize verisi yüklenemedi, vize bilgisi gösterilmeyecek")
+    else:
+        print(f"✅ Vize verisi yüklendi ({len(CITY_MAP)} şehir eşleşmesi)")
     check_ucuzauc_all()
     print("=== Tamamlandı ===")
 
