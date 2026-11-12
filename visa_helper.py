@@ -18,7 +18,6 @@ def _load_json(path, default=None):
         return default if default is not None else {}
 
 
-# Config dosyaları
 AIRPORTS = _load_json(os.path.join(CONFIG_DIR, "airports.json"))
 COUNTRIES = _load_json(os.path.join(CONFIG_DIR, "countries.json"))
 COUNTRY_NAMES_EN = _load_json(os.path.join(CONFIG_DIR, "country_names_en.json"))
@@ -47,7 +46,7 @@ if not VISA_LOADED:
     print("🚨 KRİTİK: visa_data.json boş/eksik. Tüm deal'ler reddedilecek!")
 
 
-# ─── Normalize (alias toleransı) ────────────────────────────────────
+# ─── Normalize ──────────────────────────────────────────────────────
 def _normalize(name):
     if not name:
         return ""
@@ -87,10 +86,16 @@ def get_visa_by_iata(iata_code):
 
 
 def get_iso_by_country_name(country_name):
-    """Swoop ülke isminden ISO (alias toleranslı)."""
     if not country_name:
         return None
     return COUNTRY_NAMES_EN.get(country_name) or _NORMALIZED_COUNTRY_MAP.get(_normalize(country_name))
+
+
+def get_iso_by_iata(iata_code):
+    """YENİ: Search rotaları için IATA → ISO."""
+    if not iata_code:
+        return None
+    return AIRPORTS.get(iata_code.upper())
 
 
 # ─── Duration / validity parse ──────────────────────────────────────
@@ -121,9 +126,9 @@ def _parse_validity_warning(text):
         return None
     t = text.lower()
     if "period of stay" in t:
-        return "Seyahat süresi kadar geçerli olmalı"
+        return "Seyahat süresi kadar geçerli"
     if "valid on arrival" in t:
-        return "Varışta geçerli olması yeterli"
+        return "Varışta geçerli yeterli"
     if "longer than" in t:
         m = re.search(r"(\d+)\s*(month|day|year)", t)
         if m:
@@ -140,7 +145,6 @@ def _parse_validity_warning(text):
 
 # ─── Detaylı vize bilgisi ───────────────────────────────────────────
 def get_visa_details(iso2, trip_days=None):
-    """Zengin vize bilgisi. trip_days verilirse süre kontrolü de yapar."""
     if not iso2:
         return None
     d = VISA_DETAILS.get(iso2)
@@ -190,7 +194,7 @@ def get_visa_details(iso2, trip_days=None):
 
 
 def is_visa_acceptable(iso2):
-    """Green/Yellow/Blue → True. Red → False (ETA-benzeri istisna ile)."""
+    """Green/Yellow/Blue → kabul. Red ama ETA/e-Vize/online → kabul. Gerçek red → filtrele."""
     d = VISA_DETAILS.get(iso2)
     if not d:
         return False, "detay yok"
@@ -201,12 +205,29 @@ def is_visa_acceptable(iso2):
 
     if color in ("green", "yellow", "blue"):
         return True, color
+
     if color == "red":
-        # UK gibi ETA-benzeri
-        if "online" in name and ("eta" in name or "electronic" in name):
+        # Online / e-Vize / ETA / electronic → kabul
+        if any(k in name for k in ("online", "evisa", "e-visa", "eta", "electronic")):
             return True, "red-eta"
-        # "180 days" gibi uzun süreli online vize
-        if "online" in name and re.search(r"180|6\s*month", duration):
+        if re.search(r"180|6\s*month", duration):
             return True, "red-eta"
         return False, "vize gerekli"
+
     return False, f"bilinmeyen: {color}"
+
+
+# ─── Öncelik skoru (bildirim sıralaması için) ───────────────────────
+def visa_priority(iso2):
+    """
+    Düşük = daha iyi (önce gönderilir).
+      0 = green (vizesiz)
+      1 = yellow (eTA)
+      2 = blue (e-Vize/VOA)
+      3 = red-eta (GB gibi)
+      9 = bilinmiyor
+    """
+    acceptable, kind = is_visa_acceptable(iso2)
+    if not acceptable:
+        return 9
+    return {"green": 0, "yellow": 1, "blue": 2, "red-eta": 3}.get(kind, 9)
