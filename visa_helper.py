@@ -88,11 +88,13 @@ def get_visa_by_iata(iata_code):
 def get_iso_by_country_name(country_name):
     if not country_name:
         return None
-    return COUNTRY_NAMES_EN.get(country_name) or _NORMALIZED_COUNTRY_MAP.get(_normalize(country_name))
+    iso2 = COUNTRY_NAMES_EN.get(country_name) or _NORMALIZED_COUNTRY_MAP.get(_normalize(country_name))
+    if not iso2:
+        print(f"    ⚠️ Bilinmeyen ülke: {country_name!r}", flush=True)
+    return iso2
 
 
 def get_iso_by_iata(iata_code):
-    """YENİ: Search rotaları için IATA → ISO."""
     if not iata_code:
         return None
     return AIRPORTS.get(iata_code.upper())
@@ -143,14 +145,41 @@ def _parse_validity_warning(text):
     return text
 
 
-# ─── Detaylı vize bilgisi ───────────────────────────────────────────
+# ─── Detaylı vize bilgisi (FALLBACK'Lİ) ─────────────────────────────
 def get_visa_details(iso2, trip_days=None):
     if not iso2:
         return None
-    d = VISA_DETAILS.get(iso2)
-    if not d:
-        return None
+    iso2 = iso2.upper()
 
+    d = VISA_DETAILS.get(iso2)
+
+    # FALLBACK: Detay yok ama renk map'te var → sadece renkle karar ver
+    if not d:
+        for color in ("green", "yellow", "blue", "red"):
+            if iso2 in VISA_MAP.get(color, set()):
+                name_map = {
+                    "green": "Visa not required",
+                    "yellow": "eTA",
+                    "blue": "eVisa/VOA",
+                    "red": "Visa required",
+                }
+                return {
+                    "primary": {"name": name_map[color], "color": color, "duration": None},
+                    "secondary": {},
+                    "color": color,
+                    "name": name_map[color],
+                    "duration": None,
+                    "link": None,
+                    "passport_validity": None,
+                    "warnings": ["⚠️ Detay verisi yok, sadece renk bilgisi"],
+                    "regs": [],
+                    "exceptions": [],
+                    "continent": None,
+                    "currency_code": None,
+                }
+        return None  # Ne detay ne renk — gerçekten bilinmiyor
+
+    # Tam detay var — normal akış
     primary = d.get("primary_rule", {}) or {}
     secondary = d.get("secondary_rule") or {}
     warnings = []
@@ -195,19 +224,18 @@ def get_visa_details(iso2, trip_days=None):
 
 def is_visa_acceptable(iso2):
     """Green/Yellow/Blue → kabul. Red ama ETA/e-Vize/online → kabul. Gerçek red → filtrele."""
-    d = VISA_DETAILS.get(iso2)
-    if not d:
-        return False, "detay yok"
-    primary = d.get("primary_rule", {}) or {}
-    color = primary.get("color")
-    name = (primary.get("name") or "").lower()
-    duration = (primary.get("duration") or "").lower()
+    details = get_visa_details(iso2)   # fallback otomatik
+    if not details:
+        return False, "bilinmeyen kod"
+
+    color = details.get("color")
+    name = (details.get("name") or "").lower()
+    duration = (details.get("duration") or "").lower()
 
     if color in ("green", "yellow", "blue"):
         return True, color
 
     if color == "red":
-        # Online / e-Vize / ETA / electronic → kabul
         if any(k in name for k in ("online", "evisa", "e-visa", "eta", "electronic")):
             return True, "red-eta"
         if re.search(r"180|6\s*month", duration):
@@ -217,16 +245,7 @@ def is_visa_acceptable(iso2):
     return False, f"bilinmeyen: {color}"
 
 
-# ─── Öncelik skoru (bildirim sıralaması için) ───────────────────────
 def visa_priority(iso2):
-    """
-    Düşük = daha iyi (önce gönderilir).
-      0 = green (vizesiz)
-      1 = yellow (eTA)
-      2 = blue (e-Vize/VOA)
-      3 = red-eta (GB gibi)
-      9 = bilinmiyor
-    """
     acceptable, kind = is_visa_acceptable(iso2)
     if not acceptable:
         return 9
