@@ -1076,7 +1076,7 @@
     ],
     "details": {
       "TH": {
-        "fetched_at": "2026-11-12T06:59:36.412742+00:00",
+        "fetched_at": "2026-11-12T07:06:05.766494+00:00",
         "color_at_fetch": "green",
         "primary_rule": {
           "name": "Visa not required",
@@ -1099,21 +1099,249 @@
         "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
         "continent": "Asia",
         "currency_code": "THB"
+      },
+      "GE": {
+        "fetched_at": "2026-11-12T07:06:06.348255+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "365 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid for period of stay",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Asia",
+        "currency_code": "GEL"
+      },
+      "AZ": {
+        "fetched_at": "2026-11-12T07:06:06.894866+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "90 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "4 months longer than the duration of stay",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Asia",
+        "currency_code": "AZN"
+      },
+      "RU": {
+        "fetched_at": "2026-11-12T07:06:07.467779+00:00",
+        "color_at_fetch": "blue",
+        "primary_rule": {
+          "name": "eVisa",
+          "duration": "30 days",
+          "color": "blue",
+          "link": "https://electronic-visa.kdmid.ru/index_en.html",
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [
+          {
+            "number": 1,
+            "name": "Visa not required",
+            "type": [
+              "valid-visa"
+            ],
+            "exception_type_name": "If have a valid visa issued by",
+            "duration": null,
+            "color": "green",
+            "all_country_codes": [
+              "BY"
+            ],
+            "age_min": null,
+            "age_max": null,
+            "link": null,
+            "note": null
+          }
+        ],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid on arrival",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Europe",
+        "currency_code": "RUB"
+      },
+      "MA": {
+        "fetched_at": "2026-11-12T07:06:08.039856+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "90 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid for period of stay",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Africa",
+        "currency_code": "MAD"
+      },
+      "RS": {
+        "fetched_at": "2026-11-12T07:06:08.623558+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "90 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid on arrival",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Europe",
+        "currency_code": "RSD"
+      },
+      "BA": {
+        "fetched_at": "2026-11-12T07:06:09.154298+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "90 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "3 months longer than the duration of stay",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Europe",
+        "currency_code": "BAM"
+      },
+      "BY": {
+        "fetched_at": "2026-11-12T07:06:09.698692+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "30 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid on arrival",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Europe",
+        "currency_code": "BYN"
+      },
+      "KZ": {
+        "fetched_at": "2026-11-12T07:06:10.249787+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "90 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": {
+          "name": "eTA",
+          "duration": "90 days",
+          "color": "yellow",
+          "link": "https://vmp.gov.kz/en/",
+          "note": null
+        },
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid on arrival",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Asia",
+        "currency_code": "KZT"
+      },
+      "UZ": {
+        "fetched_at": "2026-11-12T07:06:10.805653+00:00",
+        "color_at_fetch": "green",
+        "primary_rule": {
+          "name": "Visa not required",
+          "duration": "30 days",
+          "color": "green",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "Valid for period of stay",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Asia",
+        "currency_code": "UZS"
+      },
+      "QA": {
+        "fetched_at": "2026-11-12T07:06:11.309384+00:00",
+        "color_at_fetch": "blue",
+        "primary_rule": {
+          "name": "Free visa on arrival",
+          "duration": "90 days",
+          "color": "blue",
+          "link": null,
+          "note": null
+        },
+        "secondary_rule": {
+          "name": "Hayya eVisa",
+          "duration": "30 days",
+          "color": "blue",
+          "link": "https://hayya.qa/",
+          "note": null
+        },
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "3 months",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Asia",
+        "currency_code": "QAR"
+      },
+      "AE": {
+        "fetched_at": "2026-11-12T07:06:11.804183+00:00",
+        "color_at_fetch": "red",
+        "primary_rule": {
+          "name": "Online visa required",
+          "duration": null,
+          "color": "red",
+          "link": "https://icp.gov.ae/en/services-details/?serviceid=64afe3c1035448005bd52e60",
+          "note": null
+        },
+        "secondary_rule": null,
+        "exception_rules": [],
+        "mandatory_registrations": [],
+        "passport_validity": "6 months",
+        "embassy_url": "https://www.embassypages.com/turkey#titlePlaceholder2",
+        "continent": "Asia",
+        "currency_code": "AED"
       }
     }
   },
   "meta": {
-    "version": "2.0",
+    "version": "3.0",
     "language": "en",
-    "generated_at": "2026-11-12T06:59:36.712976+00:00",
-    "passports_list_fetched_at": "2026-11-12T06:59:36.064002+00:00",
-    "map_fetched_at": "2026-11-12T06:59:36.271690+00:00",
+    "generated_at": "2026-11-12T07:06:12.104376+00:00",
+    "passports_list_fetched_at": "2026-11-12T07:06:05.122071+00:00",
+    "map_fetched_at": "2026-11-12T07:06:05.397334+00:00",
     "details_stats": {
-      "total": 1,
-      "fetched_total": 1,
-      "fetched_this_run": 1,
+      "total": 12,
+      "fetched_total": 12,
+      "fetched_this_run": 12,
       "remaining": 0,
-      "last_run_at": "2026-11-12T06:59:36.712932+00:00",
+      "last_run_at": "2026-11-12T07:06:12.104332+00:00",
       "rate_limited": false
     }
   }
