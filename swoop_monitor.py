@@ -6,7 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 from visa_helper import (
     get_visa_by_country_name, get_iso_by_country_name, get_iso_by_iata,
-    get_visa_details, is_visa_acceptable, visa_priority, VISA_LOADED,
+    get_visa_details, is_visa_acceptable, visa_priority,
+    VISA_MAP, VISA_LOADED,
 )
 
 from swoop import (
