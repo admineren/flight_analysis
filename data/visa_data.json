@@ -55,6 +55,35 @@
           "name": "Visa not required"
         }
       },
+      "CN": {
+        "color_at_fetch": "red",
+        "continent": "Asia",
+        "currency_code": "CNY",
+        "fetched_at": "2026-11-12T17:45:43.971529+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://s.nia.gov.cn/ArrivalCardFillingPC/",
+            "name": "Arrival Card"
+          }
+        ],
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "EG": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "EGP",
+        "fetched_at": "2026-11-12T17:45:49.172156+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "name": "Visa on arrival"
+        }
+      },
       "GE": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -65,6 +94,139 @@
           "color": "green",
           "duration": "365 days",
           "name": "Visa not required"
+        }
+      },
+      "ID": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "IDR",
+        "fetched_at": "2026-11-12T17:45:45.878715+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://allindonesia.imigrasi.go.id/",
+            "name": "Arrival Card"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "green",
+          "duration": "30 days",
+          "name": "Visa not required"
+        },
+        "secondary_rule": {
+          "color": "yellow",
+          "duration": "30 days",
+          "link": "https://evisa.imigrasi.go.id/",
+          "name": "Pre-registration"
+        }
+      },
+      "IN": {
+        "color_at_fetch": "red",
+        "continent": "Asia",
+        "currency_code": "INR",
+        "fetched_at": "2026-11-12T17:45:47.821971+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://indianvisaonline.gov.in/earrival/",
+            "name": "e-Arrival"
+          }
+        ],
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "IQ": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "IQD",
+        "fetched_at": "2026-11-12T17:45:51.032898+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "link": "https://evisa.iq/en",
+          "name": "eVisa"
+        }
+      },
+      "JO": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "JOD",
+        "fetched_at": "2026-11-12T17:45:49.760228+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://eservices.moi.gov.jo/",
+          "name": "eVisa"
+        }
+      },
+      "JP": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "JPY",
+        "fetched_at": "2026-11-12T17:45:42.677513+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://services.digital.go.jp/en/visit-japan-web/",
+            "name": "Customs declaration"
+          }
+        ],
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "KG": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "KGS",
+        "fetched_at": "2026-11-12T17:45:54.656640+00:00",
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "KR": {
+        "color_at_fetch": "yellow",
+        "continent": "Asia",
+        "currency_code": "KRW",
+        "fetched_at": "2026-11-12T17:45:43.277278+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "yellow",
+          "duration": "90 days",
+          "link": "https://www.k-eta.go.kr/portal/apply/index.do",
+          "name": "eTA"
+        }
+      },
+      "KW": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "KWD",
+        "fetched_at": "2026-11-12T17:45:52.213523+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://kuwaitvisa.moi.gov.kw/",
+          "name": "eVisa"
         }
       },
       "KZ": {
@@ -85,6 +247,31 @@
           "name": "eTA"
         }
       },
+      "LB": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "LBP",
+        "fetched_at": "2026-11-12T17:45:50.446519+00:00",
+        "passport_validity": "1 month longer than the duration of stay",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "name": "Visa on arrival"
+        }
+      },
+      "LK": {
+        "color_at_fetch": "yellow",
+        "continent": "Asia",
+        "currency_code": "LKR",
+        "fetched_at": "2026-11-12T17:45:48.486568+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "yellow",
+          "duration": "30 days",
+          "link": "https://eta.gov.lk/",
+          "name": "eTA"
+        }
+      },
       "MA": {
         "color_at_fetch": "green",
         "continent": "Africa",
@@ -94,6 +281,55 @@
         "primary_rule": {
           "color": "green",
           "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "MY": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "MYR",
+        "fetched_at": "2026-11-12T17:45:44.637589+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://imigresen-online.imi.gov.my/mdac/main",
+            "name": "MDAC"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "OM": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "OMR",
+        "fetched_at": "2026-11-12T17:45:52.809759+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "green",
+          "duration": "30 days",
+          "name": "Visa not required"
+        }
+      },
+      "PH": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "PHP",
+        "fetched_at": "2026-11-12T17:45:46.537620+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://etravel.gov.ph/",
+            "name": "eTravel",
+            "note": "min 72h"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "green",
+          "duration": "30 days",
           "name": "Visa not required"
         }
       },
@@ -154,6 +390,42 @@
           "name": "eVisa"
         }
       },
+      "SA": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "SAR",
+        "fetched_at": "2026-11-12T17:45:51.619705+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://www.visitsaudi.com/en/plan-your-trip/visa-regulations",
+          "name": "eVisa"
+        }
+      },
+      "SG": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "SGD",
+        "fetched_at": "2026-11-12T17:45:45.283452+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://eservices.ica.gov.sg/sgarrivalcard/",
+            "name": "Arrival Card"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "green",
+          "duration": "30 days",
+          "name": "Visa not required"
+        }
+      },
       "TH": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -172,6 +444,29 @@
           "name": "Visa not required"
         }
       },
+      "TJ": {
+        "color_at_fetch": "red",
+        "continent": "Asia",
+        "currency_code": "TJS",
+        "fetched_at": "2026-11-12T17:45:54.069329+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "TM": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "TMT",
+        "fetched_at": "2026-11-12T17:45:53.400595+00:00",
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "blue",
+          "link": "https://evisa.migration.gov.tm",
+          "name": "eVisa"
+        }
+      },
       "UZ": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -183,20 +478,39 @@
           "duration": "30 days",
           "name": "Visa not required"
         }
+      },
+      "VN": {
+        "color_at_fetch": "blue",
+        "continent": "Asia",
+        "currency_code": "VND",
+        "fetched_at": "2026-11-12T17:45:47.174863+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://prearrival.immigration.gov.vn/",
+            "name": "Digital arrival form"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://evisa.gov.vn/",
+          "name": "eVisa"
+        }
       }
     },
     "passport": "TR"
   },
   "meta": {
     "details_stats": {
-      "fetched_this_run": 12,
-      "fetched_total": 12,
-      "last_run_at": "2026-11-12T07:06:12.104332+00:00",
+      "fetched_this_run": 20,
+      "fetched_total": 32,
+      "last_run_at": "2026-11-12T17:45:54.957759+00:00",
       "rate_limited": false,
       "remaining": 0,
-      "total": 12
+      "total": 20
     },
-    "generated_at": "2026-11-12T07:06:12.104376+00:00",
+    "generated_at": "2026-11-12T17:45:54.957802+00:00",
     "language": "en",
     "last_cleanup_at": "2026-11-12T07:41:55.750795+00:00",
     "map_fetched_at": "2026-11-12T07:06:05.397334+00:00",
