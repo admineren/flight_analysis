@@ -41,7 +41,8 @@ DEALS_MIN_DISCOUNT_PCT = 40
 DEALS_ASIA_MIN_DISCOUNT_PCT = 25
 DEALS_MAX_PRICE_TL = 40000
 DEALS_MAX_NOTIFY = 15          # YENİ deal limiti (yellow/eTA kabul edilince arttı)
-PRICE_CHANGE_MAX_NOTIFY = 8    # Fiyat düşüşü limiti (ayrı sayaç)
+PRICE_CHANGE_MAX_NOTIFY = 8
+PRICE_DROP_MIN_PCT = 3          # %3'ten az düşüş bildirilmez
 REQUEST_DELAY = 3
 
 
@@ -335,6 +336,84 @@ def _format_deal_msg(d, details, prefix_emoji="🎯", extra_info=""):
     msg += f"\n{disclaimer}"
     return msg
 
+def _process_price_changes(diff):
+    """
+    Fiyat değişimlerini işle. Sadece DÜŞÜŞLER, minimum %PRICE_DROP_MIN_PCT eşikli.
+    
+    Returns:
+        (alerts_sent, passed_list, rejected_dict)
+        - alerts_sent: gönderilen bildirim sayısı
+        - passed_list: [(d, details, old_p, new_p, drop_pct), ...] geçenler
+        - rejected_dict: {sebep: sayı} reddedilenler
+    """
+    passed = []
+    rejected = {}
+
+    for pc in diff.price_changes:
+        d = pc.current                      # API: PriceChange.prior / .current
+        if not d:
+            rejected["boş deal"] = rejected.get("boş deal", 0) + 1
+            continue
+
+        old_p = pc.prior.price              # ESKİ fiyat
+        new_p = pc.current.price            # YENİ fiyat
+
+        # 1) Fiyat düşmemişse atla
+        if not old_p or not new_p or new_p >= old_p:
+            rejected["fiyat düşmedi"] = rejected.get("fiyat düşmedi", 0) + 1
+            continue
+
+        # 2) Vize + bölge + fiyat + indirim filtreleri
+        ok, detail_or_reason = _deal_passes_filters(d)
+        if not ok:
+            reason_key = (
+                detail_or_reason.split(":")[0].split("(")[0].strip()
+                if detail_or_reason else "bilinmiyor"
+            )
+            rejected[reason_key] = rejected.get(reason_key, 0) + 1
+            print(f"    ❌ Price change elendi: {d.destination_city} — {detail_or_reason}", flush=True)
+            continue
+
+        # 3) Minimum düşüş eşiği (%3)
+        drop_pct = (old_p - new_p) / old_p * 100
+        if drop_pct < PRICE_DROP_MIN_PCT:
+            key = f"düşüş <%{PRICE_DROP_MIN_PCT}"
+            rejected[key] = rejected.get(key, 0) + 1
+            print(f"    ↪️  Düşüş çok küçük: {d.destination_city} (%{drop_pct:.1f})", flush=True)
+            continue
+
+        passed.append((d, detail_or_reason, old_p, new_p, drop_pct))
+        print(f"    📊 Price change geçti: {d.destination_city} "
+              f"({old_p:,} → {new_p:,}, %{drop_pct:.1f})", flush=True)
+
+    # En yüksek düşüş yüzdesine göre sırala
+    passed.sort(key=lambda x: -x[4])
+
+    # Bildirimleri gönder (limitli)
+    alerts = 0
+    for d, details, old_p, new_p, drop_pct in passed[:PRICE_CHANGE_MAX_NOTIFY]:
+        extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
+        send_telegram(_format_deal_msg(d, details, prefix_emoji="📉", extra_info=extra))
+        print(f"    📉 DÜŞÜŞ: {d.destination_city} "
+              f"({old_p:,} → {new_p:,})", flush=True)
+        alerts += 1
+
+    # Limit aşıldıysa özet
+    if len(passed) > PRICE_CHANGE_MAX_NOTIFY:
+        kalan = len(passed) - PRICE_CHANGE_MAX_NOTIFY
+        en_iyi = passed[PRICE_CHANGE_MAX_NOTIFY:][:3]
+        liste = "\n".join(
+            f"   • {d.destination_city} (%{drop:.0f}) — ₺{int(new_p):,}"
+            for d, _, _, new_p, drop in en_iyi
+        )
+        send_telegram(
+            f"ℹ️ <b>Swoop Deals — Fiyat Düşüşleri</b>\n"
+            f"Toplam <b>{len(passed)}</b> düşüş; en iyi <b>{PRICE_CHANGE_MAX_NOTIFY}</b> tanesi gönderildi.\n"
+            f"Kalan {kalan} arasında öne çıkanlar:\n{liste}"
+        )
+        print(f"    ⚠️ {kalan} düşüş limit nedeniyle gösterilmedi", flush=True)
+
+    return alerts, passed, rejected
 
 def check_deals():
     print("--- Swoop Deals Başladı ---", flush=True)
@@ -368,9 +447,6 @@ def check_deals():
             diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=False)
             print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}", flush=True)
 
-            alerts_new = 0
-            alerts_drop = 0
-
             # ============================================================
             # 1. YENİ DEAL'LER
             # ============================================================
@@ -382,7 +458,10 @@ def check_deals():
                 if ok:
                     passed_new.append((d, detail_or_reason))
                 else:
-                    reason_key = detail_or_reason.split(":")[0].split("(")[0].strip() if detail_or_reason else "bilinmiyor"
+                    reason_key = (
+                        detail_or_reason.split(":")[0].split("(")[0].strip()
+                        if detail_or_reason else "bilinmiyor"
+                    )
                     rejected_new[reason_key] = rejected_new.get(reason_key, 0) + 1
                     print(f"    ❌ YENİ elendi: {d.destination_city} — {detail_or_reason}", flush=True)
 
@@ -390,11 +469,10 @@ def check_deals():
             if rejected_new:
                 print(f"  Yeni eleme sebepleri: {rejected_new}", flush=True)
 
-            # Öncelik: vize kolaylığı + indirim
             passed_new.sort(key=lambda x: _deal_priority_score(x[0], x[1]))
 
-            sent = passed_new[:DEALS_MAX_NOTIFY]
-            for d, details in sent:
+            alerts_new = 0
+            for d, details in passed_new[:DEALS_MAX_NOTIFY]:
                 send_telegram(_format_deal_msg(d, details))
                 print(f"    ✅ YENİ: {d.destination_city} (%{d.discount_pct}) — {details.get('name')}", flush=True)
                 alerts_new += 1
@@ -414,48 +492,14 @@ def check_deals():
                 print(f"    ⚠️ {kalan} fırsat limit nedeniyle gösterilmedi", flush=True)
 
             # ============================================================
-            # 2. FİYAT DEĞİŞİMLERİ (BUG FIX!)
+            # 2. FİYAT DEĞİŞİMLERİ — ayrı fonksiyon
             # ============================================================
-            passed_changes = []
-            rejected_changes = {}
+            print(f"  Price change işleniyor ({len(diff.price_changes)} toplam)...", flush=True)
+            alerts_drop, passed_changes, rejected_changes = _process_price_changes(diff)
 
-            for pc in diff.price_changes:
-                d = pc.current  # YENİ: prior/current API'si
-                if not d:
-                    continue
-
-                old_p = pc.prior.price     # ESKİ
-                new_p = pc.current.price   # YENİ
-
-                if not old_p or not new_p or new_p >= old_p:
-                    rejected_changes["fiyat artmadı/aynı"] = rejected_changes.get("fiyat artmadı/aynı", 0) + 1
-                    continue
-
-                ok, detail_or_reason = _deal_passes_filters(d)
-                if ok:
-                    drop_pct = (old_p - new_p) / old_p * 100
-                    passed_changes.append((d, detail_or_reason, old_p, new_p, drop_pct))
-                    print(f"    📊 Price change geçti: {d.destination_city} ({old_p:,} → {new_p:,}, %{drop_pct:.0f})", flush=True)
-                else:
-                    reason_key = detail_or_reason.split(":")[0].split("(")[0].strip() if detail_or_reason else "bilinmiyor"
-                    rejected_changes[reason_key] = rejected_changes.get(reason_key, 0) + 1
-                    print(f"    ❌ Price change elendi: {d.destination_city} — {detail_or_reason}", flush=True)
-
-            print(f"  Price change: {len(passed_changes)} geçti / {len(diff.price_changes)} toplam", flush=True)
             if rejected_changes:
                 print(f"  Price change eleme sebepleri: {rejected_changes}", flush=True)
-
-            # En yüksek düşüş yüzdesine göre sırala
-            passed_changes.sort(key=lambda x: -x[4])
-
-            for d, details, old_p, new_p, drop_pct in passed_changes[:PRICE_CHANGE_MAX_NOTIFY]:
-                extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
-                send_telegram(_format_deal_msg(d, details, prefix_emoji="📉", extra_info=extra))
-                print(f"    📉 DÜŞÜŞ: {d.destination_city} ({old_p:,} → {new_p:,})", flush=True)
-                alerts_drop += 1
-
-            if len(passed_changes) > PRICE_CHANGE_MAX_NOTIFY:
-                print(f"    ⚠️ {len(passed_changes) - PRICE_CHANGE_MAX_NOTIFY} price change limit nedeniyle gösterilmedi", flush=True)
+            print(f"  Price change: {len(passed_changes)} geçti / {len(diff.price_changes)} toplam", flush=True)
 
             toplam = alerts_new + alerts_drop
             print(f"--- Swoop Deals Bitti ({alerts_new} yeni + {alerts_drop} düşüş = {toplam}) ---", flush=True)
@@ -473,7 +517,6 @@ def check_deals():
             else:
                 print(f"--- Swoop Deals HATA: {err_msg} ---", flush=True)
                 return 0
-
 
 # ============================================================
 # MAIN
