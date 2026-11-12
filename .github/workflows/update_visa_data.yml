@@ -1,25 +1,44 @@
 name: Vize Verisi Güncelleyici
 
 on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Mod: full (seçili/tüm ülkeler) | refresh (sadece değişenler) | map-only (sadece renkler)"
+        required: true
+        default: "refresh"
+        type: choice
+        options:
+          - full
+          - refresh
+          - map-only
+      countries:
+        description: "ISO kodları (virgülle, ör. TH veya TH,GE,AZ). Boş = tümü (sadece full modunda)"
+        required: false
+        default: ""
+        type: string
+      max:
+        description: "Max check sayısı (boş = sınırsız, test için 5 gibi değer gir)"
+        required: false
+        default: ""
+        type: string
   schedule:
-    # Her Pazartesi sabahı 06:00 (Türkiye saatiyle)
+    # BASIC'e dönünce haftalık refresh (şu an PRO'da test için manuel kullan)
     - cron: "0 3 * * 1"
-  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 concurrency:
   group: visa-data-update
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -28,16 +47,28 @@ jobs:
       - name: Bağımlılıkları kur
         run: pip install requests
 
-      - name: Vize verisini çek ve JSON'a kaydet
+      - name: Vize verisi güncelle
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
-        run: python update_visa_data.py
+        run: |
+          MODE="${{ github.event.inputs.mode || 'refresh' }}"
+          COUNTRIES="${{ github.event.inputs.countries }}"
+          MAX="${{ github.event.inputs.max }}"
+          ARGS=""
+          [ -n "$COUNTRIES" ] && ARGS="$ARGS --countries=$COUNTRIES"
+          [ -n "$MAX" ] && ARGS="$ARGS --max=$MAX"
+          echo "Running: python update_visa_data.py --mode=$MODE $ARGS"
+          python update_visa_data.py --mode=$MODE $ARGS
 
-      - name: Güncellenen JSON'u repoya commit et
+      - name: Commit ve push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/visa_data.json
-          git commit -m "update visa data [skip ci]" || echo "no changes"
-          git pull --rebase origin main || true
-          git push
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok"
+          else
+            git commit -m "visa data (${{ github.event.inputs.mode || 'refresh' }}, ${{ github.event.inputs.countries }}) [skip ci]"
+            git pull --rebase origin ${{ github.ref_name }} || true
+            git push
+          fi
