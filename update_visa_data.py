@@ -272,11 +272,19 @@ def mode_map_only(data):
     return True
 
 
-def mode_full(data, max_count=None, only_countries=None):
-    if not mode_map_only(data):
-        return False
+def mode_full(data, max_count=None, only_countries=None, skip_map=False):
+    if skip_map:
+        if not data["data"].get("colors"):
+            print("⚠️ --skip-map verildi ama colors boş, map çekiliyor")
+            if not mode_map_only(data):
+                return False
+        else:
+            print("⏭️  Map zaten mevcut, skip ediliyor")
+    else:
+        if not mode_map_only(data):
+            return False
     _save_json(VISA_FILE, data)
-
+  
     color_index = {}
     for c in ("green", "blue", "yellow", "red"):
         for x in (data["data"]["colors"].get(c) or "").split(","):
@@ -394,6 +402,10 @@ def main():
     )
     parser.add_argument("--countries", default=None)
     parser.add_argument("--max", type=int, default=None)
+    parser.add_argument(
+        "--skip-map", action="store_true",
+        help="Map zaten mevcut, yeniden çekme (sadece full modunda etkili)",
+    )
     args = parser.parse_args()
 
     # cleanup API key gerektirmez
@@ -408,6 +420,9 @@ def main():
     if not RAPIDAPI_KEY:
         raise SystemExit("❌ RAPIDAPI_KEY ortam değişkeni eksik")
 
+    if args.skip_map and args.mode in ("refresh", "map-only"):
+        print(f"⚠️ --skip-map sadece 'full' modunda etkili, '{args.mode}' için görmezden geliniyor")
+
     print(f"=== Visa Data Update (mode={args.mode}) ===")
     data = _load_visa_data()
 
@@ -418,7 +433,7 @@ def main():
         if args.countries:
             only = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
             print(f"Seçili ülkeler: {only}")
-        ok = mode_full(data, max_count=args.max, only_countries=only)
+        ok = mode_full(data, max_count=args.max, only_countries=only, skip_map=args.skip_map)
     elif args.mode == "refresh":
         ok = mode_refresh(data)
     else:
