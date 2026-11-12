@@ -59,7 +59,7 @@ def _load_json():
         d.setdefault("data", {}).setdefault("passports_list", [])
         d["data"].setdefault("colors", {})
         d["data"].setdefault("details", {})
-        d.setdefault("meta", {}).setdefault("version", "3.0")
+        d.setdefault("meta", {})["version"] = "3.0"
         return d
     except Exception as e:
         print(f"⚠️ JSON okunamadı ({e}), yeni başlanıyor.")
