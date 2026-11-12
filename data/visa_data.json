@@ -19,6 +19,35 @@
           "name": "Online visa required"
         }
       },
+      "AR": {
+        "color_at_fetch": "green",
+        "continent": "South America",
+        "currency_code": "ARS",
+        "fetched_at": "2026-11-12T18:00:29.541534+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "AT": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:26.557412+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "AZ": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -43,6 +72,41 @@
           "name": "Visa not required"
         }
       },
+      "BG": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:25.510412+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "BR": {
+        "color_at_fetch": "green",
+        "continent": "South America",
+        "currency_code": "BRL",
+        "fetched_at": "2026-11-12T18:00:28.959056+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://www.edbv.receita.fazenda.gov.br/",
+            "name": "Traveler's Declaration"
+          }
+        ],
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
       "BY": {
         "color_at_fetch": "green",
         "continent": "Europe",
@@ -53,6 +117,23 @@
           "color": "green",
           "duration": "30 days",
           "name": "Visa not required"
+        }
+      },
+      "CA": {
+        "color_at_fetch": "red",
+        "continent": "North America",
+        "currency_code": "CAD",
+        "fetched_at": "2026-11-12T18:00:27.711673+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://www.canada.ca/en/border-services-agency/services/arrivecan/account.html",
+            "name": "Customs declaration"
+          }
+        ],
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
         }
       },
       "CN": {
@@ -72,6 +153,23 @@
           "name": "Visa required"
         }
       },
+      "DE": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:23.137785+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "EG": {
         "color_at_fetch": "blue",
         "continent": "Africa",
@@ -84,6 +182,53 @@
           "name": "Visa on arrival"
         }
       },
+      "ES": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:22.034907+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "FR": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:22.604517+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "GB": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "GBP",
+        "fetched_at": "2026-11-12T18:00:23.706343+00:00",
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "red",
+          "duration": "180 days",
+          "link": "https://www.gov.uk/standard-visitor/apply-standard-visitor-visa",
+          "name": "Online visa required"
+        }
+      },
       "GE": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -94,6 +239,52 @@
           "color": "green",
           "duration": "365 days",
           "name": "Visa not required"
+        }
+      },
+      "GR": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:24.885966+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "HK": {
+        "color_at_fetch": "green",
+        "continent": "Asia",
+        "currency_code": "HKD",
+        "fetched_at": "2026-11-12T18:00:32.927996+00:00",
+        "passport_validity": "1 month longer than the duration of stay",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "HR": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:26.045856+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
         }
       },
       "ID": {
@@ -150,6 +341,23 @@
           "name": "eVisa"
         }
       },
+      "IT": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:21.372811+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "JO": {
         "color_at_fetch": "blue",
         "continent": "Asia",
@@ -184,6 +392,37 @@
           "color": "green",
           "duration": "90 days",
           "name": "Visa not required"
+        }
+      },
+      "KE": {
+        "color_at_fetch": "yellow",
+        "continent": "Africa",
+        "currency_code": "KES",
+        "exception_rules": [
+          {
+            "all_country_codes": [
+              "RW",
+              "UG"
+            ],
+            "color": "green",
+            "duration": "90 days",
+            "exception_type_name": "If have a valid visa issued by",
+            "link": "https://etakenya.go.ke/en",
+            "name": "Visa not required",
+            "note": "Can enter on an East African tourist visa issued by Uganda or Rwanda",
+            "number": 1,
+            "type": [
+              "valid-visa"
+            ]
+          }
+        ],
+        "fetched_at": "2026-11-12T18:00:30.631145+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "yellow",
+          "duration": "90 days",
+          "link": "https://etakenya.go.ke/en",
+          "name": "eTA"
         }
       },
       "KG": {
@@ -284,6 +523,37 @@
           "name": "Visa not required"
         }
       },
+      "MU": {
+        "color_at_fetch": "green",
+        "continent": "Africa",
+        "currency_code": "MUR",
+        "fetched_at": "2026-11-12T18:00:31.755420+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://safemauritius.govmu.org/",
+            "name": "All-In-One Travel Form"
+          }
+        ],
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "green",
+          "duration": "180 days",
+          "name": "Visa not required"
+        }
+      },
+      "MX": {
+        "color_at_fetch": "yellow",
+        "continent": "North America",
+        "currency_code": "MXN",
+        "fetched_at": "2026-11-12T18:00:28.334279+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "yellow",
+          "duration": "180 days",
+          "link": "https://www.inm.gob.mx/sae/publico/en/solicitud.html",
+          "name": "eTA"
+        }
+      },
       "MY": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -300,6 +570,23 @@
           "color": "green",
           "duration": "90 days",
           "name": "Visa not required"
+        }
+      },
+      "NL": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-12T18:00:24.289789+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
         }
       },
       "OM": {
@@ -408,6 +695,19 @@
           "name": "eVisa"
         }
       },
+      "SC": {
+        "color_at_fetch": "yellow",
+        "continent": "Africa",
+        "currency_code": "SCR",
+        "fetched_at": "2026-11-12T18:00:32.296819+00:00",
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "yellow",
+          "duration": "90 days",
+          "link": "https://seychelles.govtas.com/en",
+          "name": "eTA"
+        }
+      },
       "SG": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -467,6 +767,41 @@
           "name": "eVisa"
         }
       },
+      "TZ": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "TZS",
+        "fetched_at": "2026-11-12T18:00:31.184388+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://afyamsafiri.moh.go.tz/",
+            "name": "Health Declaration"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://visa.immigration.go.tz/",
+          "name": "eVisa"
+        }
+      },
+      "US": {
+        "color_at_fetch": "red",
+        "continent": "North America",
+        "currency_code": "USD",
+        "fetched_at": "2026-11-12T18:00:27.167564+00:00",
+        "passport_validity": "6 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "UZ": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -497,20 +832,38 @@
           "link": "https://evisa.gov.vn/",
           "name": "eVisa"
         }
+      },
+      "ZA": {
+        "color_at_fetch": "green",
+        "continent": "Africa",
+        "currency_code": "ZAR",
+        "fetched_at": "2026-11-12T18:00:30.120593+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://www.sars.gov.za/travellerdeclaration/",
+            "name": "Customs declaration"
+          }
+        ],
+        "passport_validity": "1 month longer than the duration of stay",
+        "primary_rule": {
+          "color": "green",
+          "duration": "30 days",
+          "name": "Visa not required"
+        }
       }
     },
     "passport": "TR"
   },
   "meta": {
     "details_stats": {
-      "fetched_this_run": 20,
-      "fetched_total": 32,
-      "last_run_at": "2026-11-12T17:45:54.957759+00:00",
+      "fetched_this_run": 21,
+      "fetched_total": 53,
+      "last_run_at": "2026-11-12T18:00:33.228155+00:00",
       "rate_limited": false,
       "remaining": 0,
-      "total": 20
+      "total": 21
     },
-    "generated_at": "2026-11-12T17:45:54.957802+00:00",
+    "generated_at": "2026-11-12T18:00:33.228198+00:00",
     "language": "en",
     "last_cleanup_at": "2026-11-12T07:41:55.750795+00:00",
     "map_fetched_at": "2026-11-12T07:06:05.397334+00:00",
