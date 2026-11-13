@@ -15,6 +15,10 @@
     "below_threshold": true,
     "last_tl": 14482
   },
+  "IST → Baku|2027-01-12|2027-01-19": {
+    "below_threshold": true,
+    "last_tl": 14106
+  },
   "IST → Belgrad|2027-01-09|2027-01-16": {
     "below_threshold": false,
     "last_tl": 14289
@@ -26,6 +30,10 @@
   "IST → Belgrad|2027-01-11|2027-01-18": {
     "below_threshold": false,
     "last_tl": 12440
+  },
+  "IST → Belgrad|2027-01-12|2027-01-19": {
+    "below_threshold": false,
+    "last_tl": 12502
   },
   "IST → Minsk|2027-01-09|2027-01-16": {
     "below_threshold": false,
@@ -39,6 +47,10 @@
     "below_threshold": true,
     "last_tl": 29704
   },
+  "IST → Minsk|2027-01-12|2027-01-19": {
+    "below_threshold": true,
+    "last_tl": 28253
+  },
   "IST → Saraybosna|2027-01-09|2027-01-16": {
     "below_threshold": false,
     "last_tl": 9717
@@ -50,6 +62,10 @@
   "IST → Saraybosna|2027-01-11|2027-01-18": {
     "below_threshold": true,
     "last_tl": 8098
+  },
+  "IST → Saraybosna|2027-01-12|2027-01-19": {
+    "below_threshold": true,
+    "last_tl": 8088
   },
   "IST → Tbilisi|2027-01-09|2027-01-14": {
     "below_threshold": false,
@@ -66,5 +82,9 @@
   "IST → Tbilisi|2027-01-11|2027-01-18": {
     "below_threshold": true,
     "last_tl": 9679
+  },
+  "IST → Tbilisi|2027-01-12|2027-01-19": {
+    "below_threshold": true,
+    "last_tl": 9873
   }
 }
