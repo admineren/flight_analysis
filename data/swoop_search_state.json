@@ -47,6 +47,10 @@
     "below_threshold": false,
     "last_tl": 12295
   },
+  "IST → Belgrad|2027-01-14|2027-01-21": {
+    "below_threshold": false,
+    "last_tl": 12293
+  },
   "IST → Minsk|2027-01-09|2027-01-16": {
     "below_threshold": false,
     "last_tl": 36233
@@ -90,6 +94,10 @@
   "IST → Saraybosna|2027-01-13|2027-01-20": {
     "below_threshold": false,
     "last_tl": 8574
+  },
+  "IST → Saraybosna|2027-01-14|2027-01-21": {
+    "below_threshold": true,
+    "last_tl": 8069
   },
   "IST → Tbilisi|2027-01-09|2027-01-14": {
     "below_threshold": false,
