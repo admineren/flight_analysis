@@ -31,9 +31,17 @@ WATCHLIST = [
     {"origin": "IST", "dest": "TBS", "depart": "2027-05-20", "ret": "2027-05-27"},  # Tiflis
     {"origin": "IST", "dest": "GYD", "depart": "2027-02-20", "ret": "2027-02-27"},  # Bakü
 
-    # Avrupa (vizesiz)
+    # Avrupa (Schengen) - Araştırma Sonucu Eklenenler
+    {"origin": "IST", "dest": "ZRH", "depart": "2027-03-05", "ret": "2027-03-12"},  # Zürih (Lihtenştayn için)
+    {"origin": "IST", "dest": "VNO", "depart": "2027-04-05", "ret": "2027-04-12"},  # Vilnius (Litvanya)
+    {"origin": "IST", "dest": "RIX", "depart": "2027-05-10", "ret": "2027-05-17"},  # Riga (Letonya)
+    {"origin": "IST", "dest": "TLL", "depart": "2027-06-01", "ret": "2027-06-08"},  # Tallinn (Estonya)
+
+    # Avrupa (Vizesiz / Balkanlar)
     {"origin": "IST", "dest": "BEG", "depart": "2027-03-05", "ret": "2027-03-12"},  # Belgrad
     {"origin": "IST", "dest": "TIA", "depart": "2027-04-05", "ret": "2027-04-12"},  # Tiran
+    {"origin": "IST", "dest": "SJJ", "depart": "2027-06-15", "ret": "2027-06-22"},  # Saraybosna
+    {"origin": "IST", "dest": "SKP", "depart": "2027-07-01", "ret": "2027-07-08"},  # Üsküp
 
     # Orta Asya
     {"origin": "IST", "dest": "TAS", "depart": "2027-05-10", "ret": "2027-05-17"},  # Taşkent
