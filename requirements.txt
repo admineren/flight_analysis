@@ -2,3 +2,4 @@ viajante
 requests
 beautifulsoup4
 tzdata
+swoop-flights
