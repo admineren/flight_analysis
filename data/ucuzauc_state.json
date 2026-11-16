@@ -69,7 +69,7 @@
     "caught_date": "10 Kas 2026",
     "href": "/ucuz-ucak-biletleri/istanbul-bodrum",
     "lowest_ever": 2600,
-    "pub_count": 4
+    "pub_count": 5
   },
   "Boston": {
     "caught_date": "24 Tem 2026",
@@ -273,7 +273,7 @@
     "caught_date": "10 Kas 2026",
     "href": "/ucuz-ucak-biletleri/istanbul-kutayis",
     "lowest_ever": 5300,
-    "pub_count": 2
+    "pub_count": 3
   },
   "Köln": {
     "caught_date": "11 Oca 2026",
@@ -513,7 +513,7 @@
     "caught_date": "13 Oca 2026",
     "href": "/ucuz-ucak-biletleri/istanbul-saraybosna",
     "lowest_ever": 3000,
-    "pub_count": 7
+    "pub_count": 8
   },
   "Selanik": {
     "caught_date": "28 Ağu 2026",
@@ -633,6 +633,6 @@
     "caught_date": "23 Oca 2026",
     "href": "/ucuz-ucak-biletleri/istanbul-sarm-el-seyh",
     "lowest_ever": 3400,
-    "pub_count": 14
+    "pub_count": 15
   }
 }
