@@ -45,4 +45,3 @@ FORWARD_QUERY >
         '' AS booking_url,
         source,
         observed_at
-    FROM price_history
