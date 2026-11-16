@@ -19,6 +19,18 @@
           "name": "Online visa required"
         }
       },
+      "AO": {
+        "color_at_fetch": "green",
+        "continent": "Africa",
+        "currency_code": "AOA",
+        "fetched_at": "2026-11-16T11:53:54.220787+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "green",
+          "duration": "30 days",
+          "name": "Visa not required"
+        }
+      },
       "AR": {
         "color_at_fetch": "green",
         "continent": "South America",
@@ -136,6 +148,51 @@
           "name": "Visa required"
         }
       },
+      "CD": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "CDF",
+        "fetched_at": "2026-11-16T11:53:53.774524+00:00",
+        "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "7 days",
+          "link": "https://evisa.gouv.cd/",
+          "name": "eVisa"
+        }
+      },
+      "CI": {
+        "color_at_fetch": "yellow",
+        "continent": "Africa",
+        "currency_code": "XOF",
+        "fetched_at": "2026-11-16T11:53:52.895444+00:00",
+        "passport_validity": "6 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "yellow",
+          "duration": "90 days",
+          "link": "https://snedai.com/e-visa/",
+          "name": "Pre-enrollment"
+        }
+      },
+      "CM": {
+        "color_at_fetch": "red",
+        "continent": "Africa",
+        "currency_code": "XAF",
+        "fetched_at": "2026-11-16T11:53:53.334156+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://play.google.com/store/apps/details?id=cm.customs.declaration_app",
+            "name": "Customs CMR"
+          }
+        ],
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "red",
+          "duration": "180 days",
+          "link": "https://evisacam.cm/",
+          "name": "Online visa required"
+        }
+      },
       "CN": {
         "color_at_fetch": "red",
         "continent": "Asia",
@@ -170,6 +227,35 @@
           "name": "Visa required"
         }
       },
+      "DJ": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "DJF",
+        "fetched_at": "2026-11-16T11:53:56.924621+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "link": "https://www.evisa.gouv.dj/applicant-api/#/",
+          "name": "eVisa"
+        }
+      },
+      "DZ": {
+        "color_at_fetch": "red",
+        "continent": "Africa",
+        "currency_code": "DZD",
+        "fetched_at": "2026-11-16T11:53:50.622957+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "EG": {
         "color_at_fetch": "blue",
         "continent": "Africa",
@@ -197,6 +283,24 @@
         "primary_rule": {
           "color": "red",
           "name": "Visa required"
+        }
+      },
+      "ET": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "ETB",
+        "fetched_at": "2026-11-16T11:53:51.076496+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://www.evisa.gov.et/",
+          "name": "eVisa"
         }
       },
       "FR": {
@@ -239,6 +343,18 @@
           "color": "green",
           "duration": "365 days",
           "name": "Visa not required"
+        }
+      },
+      "GH": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "GHS",
+        "fetched_at": "2026-11-16T11:53:51.986035+00:00",
+        "passport_validity": "Valid on arrival",
+        "primary_rule": {
+          "color": "blue",
+          "link": "https://evisa.immigration.gov.gh/",
+          "name": "eVisa"
         }
       },
       "GR": {
@@ -511,6 +627,18 @@
           "name": "eTA"
         }
       },
+      "LY": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "LYD",
+        "fetched_at": "2026-11-16T11:53:56.035478+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "link": "https://evisa.gov.ly/",
+          "name": "eVisa"
+        }
+      },
       "MA": {
         "color_at_fetch": "green",
         "continent": "Africa",
@@ -570,6 +698,29 @@
           "color": "green",
           "duration": "90 days",
           "name": "Visa not required"
+        }
+      },
+      "NG": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "NGN",
+        "fetched_at": "2026-11-16T11:53:51.531441+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://healthapp.ncdc.gov.ng/",
+            "name": "Health Declaration"
+          },
+          {
+            "link": "https://lecard.immigration.gov.ng/",
+            "name": "Landing card"
+          }
+        ],
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "link": "https://visa.immigration.gov.ng/",
+          "name": "eVisa"
         }
       },
       "NL": {
@@ -694,6 +845,42 @@
           "name": "eVisa"
         }
       },
+      "RW": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "RWF",
+        "exception_rules": [
+          {
+            "all_country_codes": [
+              "KE",
+              "UG"
+            ],
+            "color": "green",
+            "duration": "90 days",
+            "exception_type_name": "If have a valid visa issued by",
+            "link": "https://irembo.gov.rw/home/citizen/all_services",
+            "name": "Visa not required",
+            "note": "Can enter on an East African tourist visa issued by Kenya or Uganda",
+            "number": 1,
+            "type": [
+              "valid-visa"
+            ]
+          }
+        ],
+        "fetched_at": "2026-11-16T11:53:55.584562+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "name": "Visa on arrival"
+        },
+        "secondary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "link": "https://irembo.gov.rw/home/citizen/all_services",
+          "name": "eVisa"
+        }
+      },
       "SA": {
         "color_at_fetch": "blue",
         "continent": "Asia",
@@ -725,6 +912,18 @@
           "name": "eTA"
         }
       },
+      "SD": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "SDG",
+        "fetched_at": "2026-11-16T11:53:56.479029+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "60 days",
+          "name": "Visa on arrival"
+        }
+      },
       "SG": {
         "color_at_fetch": "green",
         "continent": "Asia",
@@ -741,6 +940,18 @@
           "color": "green",
           "duration": "30 days",
           "name": "Visa not required"
+        }
+      },
+      "SN": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "XOF",
+        "fetched_at": "2026-11-16T11:53:52.443821+00:00",
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "30 days",
+          "name": "Visa on arrival"
         }
       },
       "TH": {
@@ -788,7 +999,7 @@
         "color_at_fetch": "blue",
         "continent": "Africa",
         "currency_code": "TZS",
-        "fetched_at": "2026-11-12T18:00:31.184388+00:00",
+        "fetched_at": "2026-11-16T11:53:54.673070+00:00",
         "mandatory_registrations": [
           {
             "link": "https://afyamsafiri.moh.go.tz/",
@@ -805,6 +1016,37 @@
           "color": "blue",
           "duration": "90 days",
           "link": "https://visa.immigration.go.tz/",
+          "name": "eVisa"
+        }
+      },
+      "UG": {
+        "color_at_fetch": "blue",
+        "continent": "Africa",
+        "currency_code": "UGX",
+        "exception_rules": [
+          {
+            "all_country_codes": [
+              "KE",
+              "RW"
+            ],
+            "color": "green",
+            "duration": "90 days",
+            "exception_type_name": "If have a valid visa issued by",
+            "link": "https://visas.immigration.go.ug/",
+            "name": "Visa not required",
+            "note": "Can enter on an East African tourist visa issued by Kenya or Rwanda",
+            "number": 1,
+            "type": [
+              "valid-visa"
+            ]
+          }
+        ],
+        "fetched_at": "2026-11-16T11:53:55.124296+00:00",
+        "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "blue",
+          "duration": "90 days",
+          "link": "https://visas.immigration.go.ug/",
           "name": "eVisa"
         }
       },
@@ -873,11 +1115,14 @@
   },
   "meta": {
     "details_stats": {
-      "changed": 0,
-      "last_refresh_at": "2026-11-16T10:22:18.229467+00:00",
-      "refreshed": 0
+      "fetched_this_run": 15,
+      "fetched_total": 68,
+      "last_run_at": "2026-11-16T11:53:57.224784+00:00",
+      "rate_limited": false,
+      "remaining": 0,
+      "total": 15
     },
-    "generated_at": "2026-11-16T10:22:18.229474+00:00",
+    "generated_at": "2026-11-16T11:53:57.224834+00:00",
     "language": "en",
     "last_cleanup_at": "2026-11-12T07:41:55.750795+00:00",
     "map_fetched_at": "2026-11-16T10:22:18.229361+00:00",
