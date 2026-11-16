@@ -36,10 +36,20 @@ _blocked_this_run = False
 
 def get_routes_for_current_slot():
     now = datetime.now(timezone.utc)
-    slot = (now.hour // 6) % 2
-    half = len(WATCHLIST) // 2
-    routes = WATCHLIST[:half] if slot == 0 else WATCHLIST[half:]
-    print(f"🕐 Saat {now.hour:02d}:00 UTC → Grup {slot} ({len(routes)} rota)", flush=True)
+    RUNS_PER_DAY = 6                          # 4 saatlik cron
+    run_index = (now.hour // 4) % RUNS_PER_DAY
+
+    total = len(WATCHLIST)
+    if total == 0:
+        return []
+
+    # Modüler dağıtım: i % 6 == run_index olanları seç
+    routes = [WATCHLIST[i] for i in range(total) if i % RUNS_PER_DAY == run_index]
+
+    print(
+        f"🕐 Saat {now.hour:02d}:00 UTC → Grup {run_index + 1}/{RUNS_PER_DAY} "
+        f"({len(routes)}/{total} rota)", flush=True
+    )
     return routes
 
 
