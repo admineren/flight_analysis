@@ -400,7 +400,7 @@ def _deal_priority_score(d, details):
 
 
 def _format_deal_msg(d, details, prefix_emoji="🎯", extra_info=""):
-    airlines = ", ".join(d.airline_names[:2]) if d.airline_names else "?"
+    airlines = ", ".join(d.airline_names[:2]) if d.airline_names else "Bilinmiyor"
     price_str = _price_display(d.price, getattr(d, "currency", "TRY"))
     typical_str = f", normal {_price_display(d.typical_price, d.currency)}" if d.typical_price else ""
     disclaimer = "<i>⚠️ Resmi olmayan veri. Kurallar değişebilir; seyahatten önce teyit edin.</i>"
