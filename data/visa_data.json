@@ -873,17 +873,14 @@
   },
   "meta": {
     "details_stats": {
-      "fetched_this_run": 1,
-      "fetched_total": 54,
-      "last_run_at": "2026-11-12T18:41:52.491889+00:00",
-      "rate_limited": false,
-      "remaining": 0,
-      "total": 1
+      "changed": 0,
+      "last_refresh_at": "2026-11-16T10:22:18.229467+00:00",
+      "refreshed": 0
     },
-    "generated_at": "2026-11-12T18:41:52.491922+00:00",
+    "generated_at": "2026-11-16T10:22:18.229474+00:00",
     "language": "en",
     "last_cleanup_at": "2026-11-12T07:41:55.750795+00:00",
-    "map_fetched_at": "2026-11-12T07:06:05.397334+00:00",
+    "map_fetched_at": "2026-11-16T10:22:18.229361+00:00",
     "version": "3.1"
   }
 }
