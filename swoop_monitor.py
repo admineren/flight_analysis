@@ -2,6 +2,7 @@ import os
 import json
 import re
 import time
+import statistics
 from datetime import datetime, timedelta, timezone
 
 from visa_helper import (
@@ -25,25 +26,72 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 USD_TO_TL = 50.0
 
 GOOGLE_FLIGHTS_WATCH = [
+    # --- Kafkasya (90 gün) ---
     {"name": "IST → Tbilisi", "origin": "IST", "destination": "TBS",
-     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 11000},
+     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 11000},
     {"name": "IST → Baku", "origin": "IST", "destination": "GYD",
-     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 17000},
+     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 11000},
+
+    # --- Balkanlar (90 gün) ---
     {"name": "IST → Belgrad", "origin": "IST", "destination": "BEG",
-     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 11000},
-    {"name": "IST → Minsk", "origin": "IST", "destination": "MSQ",
-     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 30000},
+     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 12500},
     {"name": "IST → Saraybosna", "origin": "IST", "destination": "SJJ",
-     "departure_offset_days": 60, "stay_days": 7, "max_price_tl": 8500},
+     "departure_offset_days": 90, "stay_days": 7, "max_price_tl": 8500},
+
+    # --- Balkanlar (120 gün) ---
+    {"name": "IST → Tiran", "origin": "IST", "destination": "TIA",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 9500},
+    {"name": "IST → Üsküp", "origin": "IST", "destination": "SKP",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 9000},
+    {"name": "IST → Podgoritsa", "origin": "IST", "destination": "TGD",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10000},
+
+    # --- Kuzey Avrupa / Schengen (120 gün) ---
+    {"name": "IST → Riga", "origin": "IST", "destination": "RIX",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 9500},
+    {"name": "IST → Tallinn", "origin": "IST", "destination": "TLL",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10500},
+    {"name": "IST → Vilnius", "origin": "IST", "destination": "VNO",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10000},
+    {"name": "IST → Zürih", "origin": "IST", "destination": "ZRH",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10500},
+
+    # --- Orta Asya (120 gün) ---
+    {"name": "IST → Taşkent", "origin": "IST", "destination": "TAS",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 23000},
+    {"name": "IST → Almatı", "origin": "IST", "destination": "ALA",
+     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 20000},
+
+    # --- Uzak Doğu / Asya (150 gün) ---
+    {"name": "IST → Bangkok", "origin": "IST", "destination": "BKK",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 30000},
+    {"name": "IST → Bali", "origin": "IST", "destination": "DPS",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 34000},
+    {"name": "IST → Kuala Lumpur", "origin": "IST", "destination": "KUL",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 31000},
+    {"name": "IST → Singapur", "origin": "IST", "destination": "SIN",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 31000},
+    {"name": "IST → Hanoi", "origin": "IST", "destination": "HAN",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 42500},
+    {"name": "IST → Manila", "origin": "IST", "destination": "MNL",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 32000},
+    {"name": "IST → Hong Kong", "origin": "IST", "destination": "HKG",
+     "departure_offset_days": 150, "stay_days": 10, "max_price_tl": 35000},
 ]
 
 DEALS_MIN_DISCOUNT_PCT = 40
 DEALS_ASIA_MIN_DISCOUNT_PCT = 25
 DEALS_MAX_PRICE_TL = 40000
-DEALS_MAX_NOTIFY = 15          # YENİ deal limiti (yellow/eTA kabul edilince arttı)
+DEALS_MAX_NOTIFY = 15
 PRICE_CHANGE_MAX_NOTIFY = 8
-PRICE_DROP_MIN_PCT = 3          # %3'ten az düşüş bildirilmez
+PRICE_DROP_MIN_PCT = 3
 REQUEST_DELAY = 3
+
+# History
+HISTORY_MAX_KEEP = 30              # Her rota için son 30 fiyat
+HISTORY_MIN_FOR_MEDIAN = 5         # Median'a geçiş için minimum gözlem
+HISTORY_MIN_FOR_P25 = 10           # p25'e geçiş için minimum gözlem
+PRICE_RANGE_FACTOR = 1.05          # Google-low eşiği için çarpan
 
 
 # ============================================================
@@ -122,7 +170,57 @@ def _visa_emoji(color):
 
 
 # ============================================================
-# SEARCH KATMANI (vize bilgisi eklendi)
+# DİNAMİK EŞİK
+# ============================================================
+def compute_threshold(route, state, price_range_low=None):
+    """
+    Aşamalı eşik hesabı. Döner: (threshold_tl, source_label)
+    
+    Öncelik:
+      1. Google price_range.low × 1.05     → en güncel sinyal
+      2. Local history p25 (10+ gözlem)    → tarihsel
+      3. Local history median×0.90 (5-9)   → orta
+      4. Statik max_price_tl               → fallback
+    """
+    name = route["name"]
+    hist_key = f"{name}|history"
+    prices = state.get(hist_key, {}).get("prices", [])
+
+    # 1. Google price_range
+    if price_range_low and price_range_low > 0:
+        return int(price_range_low * PRICE_RANGE_FACTOR), "google-low"
+
+    # 2. Local history — p25
+    if len(prices) >= HISTORY_MIN_FOR_P25:
+        try:
+            # statistics.quantiles n=4 → [p25, p50, p75]
+            p25 = statistics.quantiles(prices, n=4)[0]
+            return int(p25), f"p25 (n={len(prices)})"
+        except Exception:
+            pass
+
+    # 3. Local history — median × 0.90
+    if len(prices) >= HISTORY_MIN_FOR_MEDIAN:
+        med = statistics.median(prices)
+        return int(med * 0.90), f"median-10% (n={len(prices)})"
+
+    # 4. Statik fallback
+    return route["max_price_tl"], "statik"
+
+
+def update_history(state, name, price):
+    """Fiyat geçmişini state'te tut (son N)."""
+    key = f"{name}|history"
+    entry = state.get(key, {"prices": []})
+    prices = entry.get("prices", [])
+    prices.append(int(price))
+    entry["prices"] = prices[-HISTORY_MAX_KEEP:]
+    entry["updated_at"] = datetime.now(timezone.utc).isoformat()
+    state[key] = entry
+
+
+# ============================================================
+# SEARCH KATMANI
 # ============================================================
 def resolve_dates(route):
     today = datetime.now(timezone.utc).date()
@@ -141,11 +239,20 @@ def _search_roundtrip_details(origin, dest, depart_date, return_date):
         valid.sort(key=lambda x: x[0])
         min_price, min_opt = valid[0]
 
+        # Google'ın sayfadaki fiyat aralığı
+        price_low = None
+        price_high = None
+        if out.price_range:
+            price_low = out.price_range.low
+            price_high = out.price_range.high
+
         details = {
             "price": min_price,
             "airline": "?",
             "duration_minutes": None,
             "stops": None,
+            "price_low": price_low,
+            "price_high": price_high,
         }
         if min_opt.legs:
             itin = min_opt.legs[0].itinerary
@@ -193,9 +300,17 @@ def check_search():
         total_tl = details["price"]
         print(f"    Bulunan Fiyat: {total_tl:,.0f} TL | {details['airline']}", flush=True)
 
+        # Dinamik eşik
+        threshold, source = compute_threshold(route, state, details.get("price_low"))
         prev = state.get(state_key, {})
         was_below = prev.get("below_threshold", False)
-        below = total_tl <= route["max_price_tl"]
+        below = total_tl <= threshold
+
+        print(
+            f"    Eşik: {threshold:,} TL ({source})"
+            f"{' | ✅ altında' if below else ''}",
+            flush=True,
+        )
 
         if not first_run and below and not was_below:
             airline = details["airline"]
@@ -208,7 +323,7 @@ def check_search():
             else:
                 dur_str = "?"
 
-            # VİZE BİLGİSİ (Search için IATA → ISO → detay)
+            # Vize
             iso2 = get_iso_by_iata(route["destination"])
             vd = get_visa_details(iso2, trip_days=route["stay_days"]) if iso2 else None
 
@@ -227,13 +342,21 @@ def check_search():
                 f"✈️ <b>[Swoop Search] {name}</b>\n"
                 f"📅 {depart} → {ret_date}\n"
                 f"💰 <b>{total_tl:,.0f} TL</b>\n"
+                f"📊 Eşik: {threshold:,} TL ({source})\n"
                 f"🛫 {airline} | {stops_str} | {dur_str}"
                 f"{visa_line}{warn_lines}\n"
                 f"⚠️ <i>Google TR fiyatı, doğrula</i>"
             )
             alerts += 1
 
-        state[state_key] = {"last_tl": total_tl, "below_threshold": below}
+        state[state_key] = {
+            "last_tl": total_tl,
+            "below_threshold": below,
+            "threshold": threshold,
+            "threshold_source": source,
+        }
+        # Geçmişe ekle
+        update_history(state, name, total_tl)
 
     _save_state(SEARCH_STATE_FILE, state)
     print(f"--- Swoop Search Bitti ({alerts} bildirim) ---", flush=True)
@@ -244,7 +367,6 @@ def check_search():
 # DEALS KATMANI
 # ============================================================
 def _deal_passes_filters(d):
-    """True ise (d, visa_details) döner. False ise (False, neden) döner."""
     if not d.destination_region:
         return False, "bölge yok"
     if not d.destination_country:
@@ -271,12 +393,10 @@ def _deal_passes_filters(d):
 
 
 def _deal_priority_score(d, details):
-    """Düşük = önce gönderilir. Vize kolaylığı + indirim."""
     iso2 = get_iso_by_country_name(d.destination_country) if d.destination_country else None
     vp = visa_priority(iso2) if iso2 else 9
-    # İndirim yüzdesi yüksekse daha iyi (negatif score)
     discount = d.discount_pct or 0
-    return (vp * 100) - discount  # vize öncelikli, sonra indirim
+    return (vp * 100) - discount
 
 
 def _format_deal_msg(d, details, prefix_emoji="🎯", extra_info=""):
@@ -311,7 +431,6 @@ def _format_deal_msg(d, details, prefix_emoji="🎯", extra_info=""):
         f"🛂 <b>{visa_line}</b>\n"
     )
 
-    # Secondary rule (varsa alt seçenek)
     sec = details.get("secondary")
     if sec and sec.get("name"):
         sec_line = f"   ↳ Alternatif: {sec['name']}"
@@ -319,11 +438,9 @@ def _format_deal_msg(d, details, prefix_emoji="🎯", extra_info=""):
             sec_line += f" ({sec['duration']})"
         msg += f"{sec_line}\n"
 
-    # Uyarılar (süre yetersiz, pasaport, zorunlu kayıt)
     for w in details.get("warnings", []):
         msg += f"{w}\n"
 
-    # İstisna (ilk 1 tanesi)
     for ex in (details.get("exceptions") or [])[:1]:
         msg += f"ℹ️ <i>İstisna: {ex.get('name')} ({ex.get('exception_type_name', '?')})</i>\n"
 
@@ -336,34 +453,24 @@ def _format_deal_msg(d, details, prefix_emoji="🎯", extra_info=""):
     msg += f"\n{disclaimer}"
     return msg
 
+
 def _process_price_changes(diff):
-    """
-    Fiyat değişimlerini işle. Sadece DÜŞÜŞLER, minimum %PRICE_DROP_MIN_PCT eşikli.
-    
-    Returns:
-        (alerts_sent, passed_list, rejected_dict)
-        - alerts_sent: gönderilen bildirim sayısı
-        - passed_list: [(d, details, old_p, new_p, drop_pct), ...] geçenler
-        - rejected_dict: {sebep: sayı} reddedilenler
-    """
     passed = []
     rejected = {}
 
     for pc in diff.price_changes:
-        d = pc.current                      # API: PriceChange.prior / .current
+        d = pc.current
         if not d:
             rejected["boş deal"] = rejected.get("boş deal", 0) + 1
             continue
 
-        old_p = pc.prior.price              # ESKİ fiyat
-        new_p = pc.current.price            # YENİ fiyat
+        old_p = pc.prior.price
+        new_p = pc.current.price
 
-        # 1) Fiyat düşmemişse atla
         if not old_p or not new_p or new_p >= old_p:
             rejected["fiyat düşmedi"] = rejected.get("fiyat düşmedi", 0) + 1
             continue
 
-        # 2) Vize + bölge + fiyat + indirim filtreleri
         ok, detail_or_reason = _deal_passes_filters(d)
         if not ok:
             reason_key = (
@@ -374,7 +481,6 @@ def _process_price_changes(diff):
             print(f"    ❌ Price change elendi: {d.destination_city} — {detail_or_reason}", flush=True)
             continue
 
-        # 3) Minimum düşüş eşiği (%3)
         drop_pct = (old_p - new_p) / old_p * 100
         if drop_pct < PRICE_DROP_MIN_PCT:
             key = f"düşüş <%{PRICE_DROP_MIN_PCT}"
@@ -386,10 +492,8 @@ def _process_price_changes(diff):
         print(f"    📊 Price change geçti: {d.destination_city} "
               f"({old_p:,} → {new_p:,}, %{drop_pct:.1f})", flush=True)
 
-    # En yüksek düşüş yüzdesine göre sırala
     passed.sort(key=lambda x: -x[4])
 
-    # Bildirimleri gönder (limitli)
     alerts = 0
     for d, details, old_p, new_p, drop_pct in passed[:PRICE_CHANGE_MAX_NOTIFY]:
         extra = f"📉 Önceki: {_price_display(old_p, d.currency)} (%{drop_pct:.0f} düşüş)"
@@ -398,7 +502,6 @@ def _process_price_changes(diff):
               f"({old_p:,} → {new_p:,})", flush=True)
         alerts += 1
 
-    # Limit aşıldıysa özet
     if len(passed) > PRICE_CHANGE_MAX_NOTIFY:
         kalan = len(passed) - PRICE_CHANGE_MAX_NOTIFY
         en_iyi = passed[PRICE_CHANGE_MAX_NOTIFY:][:3]
@@ -411,9 +514,9 @@ def _process_price_changes(diff):
             f"Toplam <b>{len(passed)}</b> düşüş; en iyi <b>{PRICE_CHANGE_MAX_NOTIFY}</b> tanesi gönderildi.\n"
             f"Kalan {kalan} arasında öne çıkanlar:\n{liste}"
         )
-        print(f"    ⚠️ {kalan} düşüş limit nedeniyle gösterilmedi", flush=True)
 
     return alerts, passed, rejected
+
 
 def check_deals():
     print("--- Swoop Deals Başladı ---", flush=True)
@@ -447,9 +550,6 @@ def check_deals():
             diff = watch_deals(result, cache_path=DEALS_STATE_FILE, allow_empty=False)
             print(f"  Yeni: {len(diff.new)}, Fiyat Değişimi: {len(diff.price_changes)}", flush=True)
 
-            # ============================================================
-            # 1. YENİ DEAL'LER
-            # ============================================================
             passed_new = []
             rejected_new = {}
 
@@ -489,11 +589,7 @@ def check_deals():
                     f"Toplam <b>{len(passed_new)}</b> yeni fırsat; en iyi <b>{DEALS_MAX_NOTIFY}</b> tanesi gönderildi.\n"
                     f"Kalan {kalan} arasında öne çıkanlar:\n{liste}"
                 )
-                print(f"    ⚠️ {kalan} fırsat limit nedeniyle gösterilmedi", flush=True)
 
-            # ============================================================
-            # 2. FİYAT DEĞİŞİMLERİ — ayrı fonksiyon
-            # ============================================================
             print(f"  Price change işleniyor ({len(diff.price_changes)} toplam)...", flush=True)
             alerts_drop, passed_changes, rejected_changes = _process_price_changes(diff)
 
@@ -517,6 +613,7 @@ def check_deals():
             else:
                 print(f"--- Swoop Deals HATA: {err_msg} ---", flush=True)
                 return 0
+
 
 # ============================================================
 # MAIN
