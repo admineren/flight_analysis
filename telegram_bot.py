@@ -8,7 +8,7 @@ from datetime import date, timedelta, datetime
 from viajante import get_flights, search_flex, search_dates
 from visa_helper import (
     get_visa_by_iata, get_iso_by_iata, get_visa_details,
-    COUNTRIES,
+    get_iso_by_country_name, COUNTRIES,
 )
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -19,9 +19,8 @@ TB_READ_TOKEN = os.environ.get("TB_READ_TOKEN")
 STATE_FILE = "data/telegram_state.json"
 DEALS_CACHE_FILE = "data/swoop_deals_state.json"
 
-# Cache (Tinybird çağrıları için, aynı komutta tekrar sorgu yapmasın)
 _TB_CACHE = {}
-_TB_CACHE_TTL = 300  # 5 dakika
+_TB_CACHE_TTL = 300
 
 
 # ============================================================
@@ -53,13 +52,13 @@ def send_message(text):
         if r.status_code == 200:
             print(f"📤 Mesaj gönderildi ({len(text)} karakter)", flush=True)
         else:
-            print(f"⚠️ Telegram mesaj hatası: {r.status_code} {r.text[:150]}", flush=True)
+            print(f"⚠️ Telegram hatası: {r.status_code}", flush=True)
     except Exception as e:
         print(f"❌ Mesaj gönderilemedi: {e}", flush=True)
 
 
 # ============================================================
-# TINYBIRD SORGULARI (cache'li)
+# TINYBIRD (cache'li)
 # ============================================================
 def tb_latest_price(origin, dest, dep_date):
     url = f"{TB_HOST}/v0/pipes/latest_price.json"
@@ -112,6 +111,10 @@ def tb_trend_cached(origin, dest, dep, days=7):
 # ============================================================
 # FORMAT YARDIMCILARI
 # ============================================================
+def _visa_emoji(color):
+    return {"green": "🟢", "yellow": "🟡", "blue": "🔵", "red": "🔴"}.get(color, "⚪")
+
+
 def format_vs_typical(pct):
     if pct is None:
         return ""
@@ -178,21 +181,14 @@ def flight_details(offer):
     return {"flight_mins": flight_mins, "total_mins": total_mins, "layovers": layovers}
 
 
-def _visa_emoji(color):
-    return {"green": "🟢", "yellow": "🟡", "blue": "🔵", "red": "🔴"}.get(color, "⚪")
-
-
 # ============================================================
-# KOMUTLAR — YENİ
+# /vize
 # ============================================================
 def cmd_vize(args):
-    """/vize TH veya /vize BKK — anlık vize bilgisi."""
     if len(args) < 1:
         return "❌ Kullanım: <code>/vize TH</code> veya <code>/vize BKK</code>"
 
     code = args[0].upper()
-    iso2 = None
-
     if len(code) == 3:
         iso2 = get_iso_by_iata(code)
         if not iso2:
@@ -210,13 +206,11 @@ def cmd_vize(args):
         return (
             f"🛂 {title}\n"
             f"⚪ Detay yok\n\n"
-            f"⚠️ Bu ülkenin vize detayı henüz çekilmedi.\n"
-            f"<code>update_visa_data.py --mode=full --countries={iso2}</code>"
+            f"⚠️ Bu ülkenin vize detayı henüz çekilmedi."
         )
 
     emoji = _visa_emoji(detail.get("color"))
     lines = [f"🛂 {title}", f"{emoji} <b>{detail.get('name', '?')}</b>"]
-
     if detail.get("duration"):
         lines.append(f"⏱️ Süre: {detail['duration']}")
 
@@ -239,12 +233,15 @@ def cmd_vize(args):
     return "\n".join(lines)
 
 
+# ============================================================
+# /detay — Latest + Trend + Vize (tek komut)
+# ============================================================
 def cmd_detay(args):
-    """/detay IST BKK 2027-02-15 — her şey tek komutta."""
     if len(args) < 3:
-        return "❌ Kullanım: <code>/detay IST BKK 2027-02-15</code>"
+        return "❌ Kullanım: <code>/detay IST BKK 2027-02-15 [gün]</code>"
 
     origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
+    days = int(args[3]) if len(args) > 3 and args[3].isdigit() else 30
 
     lines = [f"📊 <b>{origin} → {dest}</b> ({dep})\n"]
 
@@ -271,14 +268,14 @@ def cmd_detay(args):
     else:
         lines.append("📭 Tinybird'de kayıt yok")
 
-    # 2. Trend (30 gün)
-    trend = tb_trend_cached(origin, dest, dep, 30)
+    # 2. Trend
+    trend = tb_trend_cached(origin, dest, dep, days)
     if trend and trend.get("observation_count"):
         count = trend["observation_count"]
         lowest = trend.get("lowest_price", 0)
         highest = trend.get("highest_price", 0)
         avg = trend.get("avg_price", 0)
-        lines.append(f"\n📈 <b>Son 30 gün</b> ({count} gözlem)")
+        lines.append(f"\n📈 <b>Son {days} gün</b> ({count} gözlem)")
         lines.append(f"   🟢 En düşük: <b>{lowest:,.0f} TRY</b>")
         lines.append(f"   🔴 En yüksek: {highest:,.0f} TRY")
         lines.append(f"   📊 Ortalama: {avg:,.0f} TRY")
@@ -288,6 +285,12 @@ def cmd_detay(args):
                 lines.append(f"   📉 Ortalamanın %{abs(diff):.0f} altında ✅")
             elif diff > 5:
                 lines.append(f"   📈 Ortalamanın %{diff:.0f} üstünde ⚠️")
+
+        # Latest trend'de yok mu?
+        last_latest = (latest.get("observed_at") or "")[:19] if latest else ""
+        last_trend = (trend.get("last_seen") or "")[:19]
+        if last_latest and last_trend and last_latest > last_trend:
+            lines.append(f"\nℹ️ Son ölçüm henüz trend'e kaydedilmedi")
 
     # 3. Vize
     iso2 = get_iso_by_iata(dest)
@@ -308,10 +311,12 @@ def cmd_detay(args):
     return "\n".join(lines)
 
 
+# ============================================================
+# /firsatlar — Vize emoji + tarih filtresi
+# ============================================================
 def cmd_firsatlar(args):
-    """/firsatlar — son Swoop Deals cache'inden top 10."""
     if not os.path.exists(DEALS_CACHE_FILE):
-        return "📭 Deal cache henüz oluşmadı. Swoop monitor ilk run sonrası dolacak."
+        return "📭 Deal cache henüz oluşmadı."
 
     try:
         with open(DEALS_CACHE_FILE, "r", encoding="utf-8") as f:
@@ -319,7 +324,7 @@ def cmd_firsatlar(args):
     except Exception as e:
         return f"❌ Cache okunamadı: {e}"
 
-    # Cache formatını tolere et: {"deals":[...]} veya [...] veya {id: {...}}
+    # Toleranslı parsing
     deals = []
     if isinstance(data, dict):
         if "deals" in data and isinstance(data["deals"], list):
@@ -332,17 +337,28 @@ def cmd_firsatlar(args):
         deals = data
 
     if not deals:
-        return "📭 Cache boş. Henüz deal yakalanmamış."
+        return "📭 Cache boş."
 
-    # Sadece discount_pct olanlar
-    valid = [d for d in deals if isinstance(d, dict) and d.get("discount_pct") is not None]
+    # Geçmiş tarih filtresi
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    valid = []
+    for d in deals:
+        if not isinstance(d, dict):
+            continue
+        if d.get("discount_pct") is None:
+            continue
+        dep = d.get("departure_date", "")
+        if dep and dep < today_str:
+            continue
+        valid.append(d)
+
     if not valid:
-        return f"📭 {len(deals)} deal cache'te ama indirim bilgisi eksik."
+        return "📭 Geçerli deal yok (hepsi geçmiş tarihli)."
 
     valid.sort(key=lambda x: -(x.get("discount_pct") or 0))
     top = valid[:10]
 
-    lines = [f"🎯 <b>Son Swoop Fırsatları</b> ({len(deals)} cache)\n"]
+    lines = [f"🎯 <b>Son Swoop Fırsatları</b> ({len(valid)} aktif)\n"]
     for i, d in enumerate(top, 1):
         city = d.get("destination_city", "?")
         country = d.get("destination_country", "")
@@ -352,7 +368,16 @@ def cmd_firsatlar(args):
         days = d.get("trip_days", "?")
         currency = d.get("currency", "TRY")
         price_str = f"₺{price:,}" if currency == "TRY" else f"{price} {currency}"
-        lines.append(f"{i}. <b>IST → {city}{country_str}</b>")
+
+        # Vize emoji
+        iso2 = get_iso_by_country_name(country) if country else None
+        v_emoji = "⚪"
+        if iso2:
+            vd = get_visa_details(iso2)
+            if vd:
+                v_emoji = _visa_emoji(vd.get("color"))
+
+        lines.append(f"{i}. {v_emoji} <b>IST → {city}{country_str}</b>")
         lines.append(f"   💰 {price_str} (<b>%{discount}</b>) | {days} gece")
 
     if len(valid) > 10:
@@ -362,70 +387,45 @@ def cmd_firsatlar(args):
 
 
 # ============================================================
-# KOMUTLAR — MEVCUT
+# /ara — Akıllı mod algılama (3 mod tek komut)
 # ============================================================
-def cmd_help():
-    return (
-        "🤖 <b>Uçuş Fırsat Avcısı</b>\n\n"
-        "📊 <b>/detay</b> <code>IST BKK 2027-02-15</code> — her şey tek komutta\n"
-        "🛂 <b>/vize</b> <code>TH</code> veya <code>BKK</code> — vize bilgisi\n"
-        "🎯 <b>/firsatlar</b> — son Swoop fırsatları\n\n"
-        "📊 <b>/gecmis</b> <code>IST BKK 2027-02-15</code>\n"
-        "📈 <b>/trend</b> <code>IST BKK 2027-02-15 [gün]</code>\n"
-        "✈️ <b>/ara</b> <code>IST BKK 2027-02-15</code> — canlı fiyat\n"
-        "📅 <b>/esnek</b> <code>IST BKK 2027-02-15 5</code>\n"
-        "🗓️ <b>/takvim</b> <code>IST BKK 2027-02-01 2027-04-30</code>"
-    )
-
-
-def cmd_gecmis(args):
-    if len(args) < 3:
-        return "❌ Kullanım: <code>/gecmis IST BKK 2027-02-15</code>"
-    origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
-    result = tb_latest_cached(origin, dest, dep)
-    if not result:
-        return f"📭 <b>{origin} → {dest}</b> ({dep}) için kayıtlı veri yok."
-    price = result.get("price", 0)
-    airline = result.get("airline", "?")
-    level = result.get("price_level", "unknown")
-    stops = result.get("stops", "?")
-    duration = result.get("duration_hours", 0)
-    observed = (result.get("observed_at", "") or "").replace("T", " ").replace("Z", "")
-    level_emoji = {"low": "🟢", "typical": "🟡", "high": "🔴"}.get(level, "⚪")
-    return (
-        f"📊 <b>{origin} → {dest}</b> ({dep})\n\n"
-        f"💰 Son kayıtlı: <b>{price:,.0f} TRY</b>\n"
-        f"🛫 {airline} | {stops} aktarma | {duration:.1f}s\n"
-        f"{level_emoji} Seviye: {level.upper()}\n"
-        f"🕐 {observed} (UTC)"
-    )
-
-
-def cmd_trend(args):
-    if len(args) < 3:
-        return "❌ Kullanım: <code>/trend IST BKK 2027-02-15 [7]</code>"
-    origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
-    days = int(args[3]) if len(args) > 3 and args[3].isdigit() else 7
-    result = tb_trend_cached(origin, dest, dep, days)
-    if not result or not result.get("observation_count"):
-        return f"📭 <b>{origin} → {dest}</b> için son {days} günde kayıt yok."
-    count = result.get("observation_count", 0)
-    lowest = result.get("lowest_price", 0)
-    highest = result.get("highest_price", 0)
-    avg = result.get("avg_price", 0)
-    return (
-        f"📈 <b>{origin} → {dest}</b> ({dep})\n"
-        f"📅 Son {days} gün ({count} gözlem)\n\n"
-        f"🟢 En düşük: <b>{lowest:,.0f} TRY</b>\n"
-        f"🔴 En yüksek: {highest:,.0f} TRY\n"
-        f"📊 Ortalama: {avg:,.0f} TRY"
-    )
-
-
 def cmd_ara(args):
+    """
+    /ara IST BKK 2027-02-15              → tek gün canlı arama
+    /ara IST BKK 2027-02-15 ±5           → esnek (±5 gün)
+    /ara IST BKK 2027-02-01 2027-04-30   → tarih aralığı
+    """
     if len(args) < 3:
-        return "❌ Kullanım: <code>/ara IST BKK 2027-02-15</code>"
-    origin, dest, dep = args[0].upper(), args[1].upper(), args[2]
+        return (
+            "❌ Kullanım:\n"
+            "<code>/ara IST BKK 2027-02-15</code> — tek gün\n"
+            "<code>/ara IST BKK 2027-02-15 ±5</code> — esnek\n"
+            "<code>/ara IST BKK 2027-02-01 2027-04-30</code> — aralık"
+        )
+
+    origin, dest = args[0].upper(), args[1].upper()
+    arg2 = args[2]
+
+    # Mod algıla
+    if len(args) >= 4:
+        arg3 = args[3]
+        # Esnek mod: ±5 veya +/-5
+        if arg3.startswith("±") or arg3.startswith("+/-") or arg3.startswith("+-"):
+            try:
+                flex = int(arg3.lstrip("±+/-"))
+                return _ara_flex(origin, dest, arg2, flex)
+            except ValueError:
+                return "❌ Esneklik sayı olmalı: <code>±5</code> gibi"
+        # Aralık mod: iki tarih
+        else:
+            return _ara_range(origin, dest, arg2, arg3)
+
+    # Tek gün mod
+    return _ara_single(origin, dest, arg2)
+
+
+def _ara_single(origin, dest, dep):
+    """Tek gün canlı fiyat."""
     MAX_ATTEMPTS, WAIT_SECONDS = 3, 20
     q = None
     last_err = "unknown"
@@ -456,13 +456,19 @@ def cmd_ara(args):
                 continue
             return f"❌ Hata: {last_err}"
     if not q or q.status != "ok" or not q.offers:
-        return f"⚠️ {MAX_ATTEMPTS} denemede de BLOCKED.\nSon hata: {last_err}"
+        return (
+            f"⚠️ Google BLOCKED ({MAX_ATTEMPTS} denemede)\n\n"
+            f"💡 20-30 dk sonra tekrar dene veya:\n"
+            f"<code>/detay {origin} {dest} {dep}</code>"
+        )
+
     level_emoji = "⚪"
     level_text = "BİLİNMİYOR"
     if q.price_insight:
         level = q.price_insight.level
         level_emoji = {"low": "🟢", "typical": "🟡", "high": "🔴"}.get(level, "⚪")
         level_text = level.upper()
+
     lines = [f"✈️ <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş)\n📅 {dep}\n"]
     seen_airlines = set()
     display_count = 0
@@ -504,6 +510,7 @@ def cmd_ara(args):
         if o.google_flights_url:
             lines.append(f"   🔗 <a href='{o.google_flights_url}'>Google Flights</a>")
         lines.append("")
+
     if q.price_insight:
         pi = q.price_insight
         lines.append(f"{level_emoji} <b>Seviye: {level_text}</b>")
@@ -512,22 +519,22 @@ def cmd_ara(args):
         if pi.typical_range:
             lo, hi = pi.typical_range
             lines.append(f"   📊 Tipik aralık: {lo:,.0f} - {hi:,.0f} TRY")
+
     lines.append(f"\n🛂 <b>{get_visa_by_iata(dest)}</b>")
     return "\n".join(lines)
 
 
-def cmd_esnek(args):
-    if len(args) < 4:
-        return "❌ Kullanım: <code>/esnek IST BKK 2027-02-15 5</code>"
-    origin, dest, dep_str, flex_str = args[0].upper(), args[1].upper(), args[2], args[3]
+def _ara_flex(origin, dest, dep, flex_days):
+    """Esnek tarih (±N gün)."""
+    if not (1 <= flex_days <= 15):
+        return "❌ Esneklik 1-15 gün arasında olmalı."
+
     try:
-        flex_days = int(flex_str)
-        if not (1 <= flex_days <= 15):
-            return "❌ Esneklik 1-15 gün arasında olmalı."
-        target_date = date.fromisoformat(dep_str)
+        target_date = date.fromisoformat(dep)
     except ValueError:
-        return "❌ Tarih veya gün formatı hatalı."
-    MAX_ATTEMPTS, WAIT_SECONDS = 3, 20
+        return "❌ Tarih formatı hatalı (YYYY-MM-DD)."
+
+    MAX_ATTEMPTS, WAIT_SECONDS = 2, 30
     report = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
@@ -545,15 +552,24 @@ def cmd_esnek(args):
         except Exception:
             if attempt < MAX_ATTEMPTS:
                 time.sleep(WAIT_SECONDS)
+
     if not report or not report.days:
-        return "⚠️ Esnek tarama sonuç vermedi (BLOCKED). 15-20 dk sonra deneyin."
+        return (
+            f"⚠️ Esnek tarama BLOCKED\n\n"
+            f"💡 Alternatifler:\n"
+            f"• <code>/ara {origin} {dest} {dep}</code> (tek gün)\n"
+            f"• <code>/detay {origin} {dest} {dep}</code> (cache)\n"
+            f"• 20 dk sonra tekrar dene"
+        )
+
     priced = [(d.departure_date, d.price, d.airline, d.stops_count, d.vs_typical_pct)
               for d in report.days if d.price]
     if not priced:
         return "📭 Fiyat bilgisi olan gün yok (BLOCKED)."
+
     priced.sort(key=lambda x: x[1])
     lines = [
-        f"📅 <b>{origin} ⇄ {dest}</b> (7 gece gidiş-dönüş, {dep_str} ±{flex_days}g)\n",
+        f"📅 <b>{origin} ⇄ {dest}</b> (7 gece, {dep} ±{flex_days}g)\n",
         "<b>En ucuz 3 gün:</b>",
     ]
     for i, (d_date, price, air, stops, pct) in enumerate(priced[:3], 1):
@@ -569,30 +585,26 @@ def cmd_esnek(args):
     return "\n".join(lines)
 
 
-def cmd_takvim(args):
-    if len(args) < 4:
-        return "❌ Kullanım: <code>/takvim IST BKK 2027-02-01 2027-04-30</code>"
-    origin, dest, start_str, end_str = args[0].upper(), args[1].upper(), args[2], args[3]
+def _ara_range(origin, dest, start_str, end_str):
+    """Tarih aralığı (ay ay tarama)."""
     try:
         start, end = date.fromisoformat(start_str), date.fromisoformat(end_str)
     except ValueError:
-        return "❌ Tarih formatı hatalı."
+        return "❌ Tarih formatı hatalı (YYYY-MM-DD)."
     if end < start:
         return "❌ Bitiş tarihi başlangıçtan önce olamaz."
 
-    # 30 günlük pencerelere böl
     windows, current = [], start
     while current <= end:
         w_end = min(current + timedelta(days=30), end)
         windows.append((current, w_end))
         current = w_end + timedelta(days=1)
 
-    # Limit: 3 pencere (BLOCKED riski ve süre için)
     if len(windows) > 3:
         return (
-            f"❌ En fazla 3 ay (3 pencere) taranabilir.\n"
+            f"❌ En fazla 3 ay taranabilir.\n"
             f"İstediğin: {len(windows)} pencere.\n\n"
-            f"💡 Daha kısa aralık seç veya /esnek kullan."
+            f"💡 Daha kısa aralık seç veya <code>/ara {origin} {dest} {start_str} ±5</code>"
         )
 
     results = []
@@ -616,9 +628,11 @@ def cmd_takvim(args):
 
     if not results:
         return (
-            "⚠️ Google rate limit (BLOCKED).\n"
-            "• 15-20 dakika sonra tekrar deneyin\n"
-            "• Daha kısa aralık seçin (ör. tek ay)"
+            f"⚠️ Google BLOCKED\n\n"
+            f"💡 Alternatifler:\n"
+            f"• 20-30 dk sonra tekrar dene\n"
+            f"• <code>/detay {origin} {dest} {start_str}</code> (cache)\n"
+            f"• Daha kısa aralık"
         )
 
     by_month = {}
@@ -640,12 +654,47 @@ def cmd_takvim(args):
         lines.append(f"🗓️ <b>{m_label}</b>: {bp:,.0f} TRY\n   📍 {bd} | {ba}")
         if overall_best is None or bp < overall_best[0]:
             overall_best = (bp, m_label, bd)
+
+    # Eksik aylar kontrolü
+    expected_months = set()
+    for w_start, w_end in windows:
+        cur = w_start
+        while cur <= w_end:
+            expected_months.add(cur.strftime("%Y-%m"))
+            if cur.month == 12:
+                cur = cur.replace(year=cur.year + 1, month=1, day=1)
+            else:
+                cur = cur.replace(month=cur.month + 1, day=1)
+    got_months = {m for m, _, _, _ in results}
+    missing = expected_months - got_months
+
     if overall_best:
         lines.append(
             f"\n💡 <b>En ucuz: {overall_best[1]}</b> "
             f"({overall_best[0]:,.0f} TRY, {overall_best[2]})"
         )
+    if missing:
+        missing_str = ", ".join(sorted(missing))
+        lines.append(f"\n⚠️ Eksik aylar (BLOCKED): {missing_str}")
+
     return "\n".join(lines)
+
+
+# ============================================================
+# /yardim
+# ============================================================
+def cmd_help():
+    return (
+        "🤖 <b>Uçuş Fırsat Avcısı</b>\n\n"
+        "📊 <b>/detay</b> <code>IST BKK 2027-02-15</code>\n"
+        "   Geçmiş + trend + vize\n\n"
+        "✈️ <b>/ara</b> <code>IST BKK 2027-02-15</code>\n"
+        "   Canlı fiyat (tek gün)\n"
+        "   <code>/ara IST BKK 2027-02-15 ±5</code> — esnek\n"
+        "   <code>/ara IST BKK 2027-02-01 2027-04-30</code> — aralık\n\n"
+        "🛂 <b>/vize</b> <code>TH</code> veya <code>BKK</code>\n"
+        "🎯 <b>/firsatlar</b> — son Swoop fırsatları"
+    )
 
 
 # ============================================================
@@ -662,11 +711,7 @@ def process_command(text):
         "detay": lambda: cmd_detay(args), "detail": lambda: cmd_detay(args),
         "vize": lambda: cmd_vize(args), "visa": lambda: cmd_vize(args),
         "firsatlar": lambda: cmd_firsatlar(args), "deals": lambda: cmd_firsatlar(args),
-        "gecmis": lambda: cmd_gecmis(args), "history": lambda: cmd_gecmis(args),
-        "trend": lambda: cmd_trend(args),
         "ara": lambda: cmd_ara(args), "search": lambda: cmd_ara(args),
-        "esnek": lambda: cmd_esnek(args), "flex": lambda: cmd_esnek(args),
-        "takvim": lambda: cmd_takvim(args), "calendar": lambda: cmd_takvim(args),
     }
     handler = handlers.get(cmd)
     if not handler:
