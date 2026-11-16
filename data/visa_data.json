@@ -19,6 +19,17 @@
           "name": "Online visa required"
         }
       },
+      "AL": {
+        "color_at_fetch": "green",
+        "continent": "Europe",
+        "currency_code": "ALL",
+        "fetched_at": "2026-11-16T17:55:27.810621+00:00",
+        "passport_validity": "3 months",
+        "primary_rule": {
+          "color": "green",
+          "name": "Visa not required"
+        }
+      },
       "AO": {
         "color_at_fetch": "green",
         "continent": "Africa",
@@ -161,6 +172,23 @@
           "name": "eVisa"
         }
       },
+      "CH": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "CHF",
+        "fetched_at": "2026-11-16T17:55:31.094821+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "CI": {
         "color_at_fetch": "yellow",
         "continent": "Africa",
@@ -251,6 +279,23 @@
         "currency_code": "DZD",
         "fetched_at": "2026-11-16T11:53:50.622957+00:00",
         "passport_validity": "6 months",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "EE": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-16T17:55:30.022706+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
         "primary_rule": {
           "color": "red",
           "name": "Visa required"
@@ -627,6 +672,84 @@
           "name": "eTA"
         }
       },
+      "LT": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "fetched_at": "2026-11-16T17:55:30.528147+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "LV": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "exception_rules": [
+          {
+            "all_country_codes": [
+              "AT",
+              "BE",
+              "BG",
+              "CH",
+              "CZ",
+              "DE",
+              "DK",
+              "EE",
+              "ES",
+              "FI",
+              "FR",
+              "GR",
+              "HR",
+              "HU",
+              "IS",
+              "IT",
+              "LI",
+              "LT",
+              "LU",
+              "LV",
+              "MT",
+              "NL",
+              "NO",
+              "PL",
+              "PT",
+              "RO",
+              "SE",
+              "SI",
+              "SK"
+            ],
+            "color": "yellow",
+            "duration": "90 days",
+            "exception_type_name": "If have a valid visa issued by",
+            "link": "https://eta.gov.lv/en/",
+            "name": "eTA",
+            "number": 1,
+            "type": [
+              "valid-visa"
+            ]
+          }
+        ],
+        "fetched_at": "2026-11-16T17:55:29.458402+00:00",
+        "mandatory_registrations": [
+          {
+            "link": "https://travel-europe.europa.eu/ees",
+            "name": "Entry/Exit System"
+          }
+        ],
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
       "LY": {
         "color_at_fetch": "blue",
         "continent": "Africa",
@@ -645,6 +768,79 @@
         "currency_code": "MAD",
         "fetched_at": "2026-11-12T07:06:08.039856+00:00",
         "passport_validity": "Valid for period of stay",
+        "primary_rule": {
+          "color": "green",
+          "duration": "90 days",
+          "name": "Visa not required"
+        }
+      },
+      "ME": {
+        "color_at_fetch": "red",
+        "continent": "Europe",
+        "currency_code": "EUR",
+        "exception_rules": [
+          {
+            "all_country_codes": [
+              "AT",
+              "AU",
+              "BE",
+              "BG",
+              "CA",
+              "CH",
+              "CZ",
+              "DE",
+              "DK",
+              "EE",
+              "ES",
+              "FI",
+              "FR",
+              "GB",
+              "GR",
+              "HR",
+              "HU",
+              "IE",
+              "IS",
+              "IT",
+              "JP",
+              "LI",
+              "LT",
+              "LU",
+              "LV",
+              "MT",
+              "NL",
+              "NO",
+              "NZ",
+              "PL",
+              "PT",
+              "RO",
+              "SE",
+              "SI",
+              "SK",
+              "US"
+            ],
+            "color": "green",
+            "duration": "30 days",
+            "exception_type_name": "If have a valid visa issued by",
+            "name": "Visa not required",
+            "number": 1,
+            "type": [
+              "valid-visa"
+            ]
+          }
+        ],
+        "fetched_at": "2026-11-16T17:55:28.956651+00:00",
+        "passport_validity": "3 months longer than the duration of stay",
+        "primary_rule": {
+          "color": "red",
+          "name": "Visa required"
+        }
+      },
+      "MK": {
+        "color_at_fetch": "green",
+        "continent": "Europe",
+        "currency_code": "MKD",
+        "fetched_at": "2026-11-16T17:55:28.393190+00:00",
+        "passport_validity": "3 months",
         "primary_rule": {
           "color": "green",
           "duration": "90 days",
@@ -1115,14 +1311,14 @@
   },
   "meta": {
     "details_stats": {
-      "fetched_this_run": 15,
-      "fetched_total": 68,
-      "last_run_at": "2026-11-16T11:53:57.224784+00:00",
+      "fetched_this_run": 7,
+      "fetched_total": 75,
+      "last_run_at": "2026-11-16T17:55:31.394978+00:00",
       "rate_limited": false,
       "remaining": 0,
-      "total": 15
+      "total": 7
     },
-    "generated_at": "2026-11-16T11:53:57.224834+00:00",
+    "generated_at": "2026-11-16T17:55:31.395018+00:00",
     "language": "en",
     "last_cleanup_at": "2026-11-12T07:41:55.750795+00:00",
     "map_fetched_at": "2026-11-16T10:22:18.229361+00:00",
