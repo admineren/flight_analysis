@@ -67,7 +67,7 @@ def _add_visa_line(msg, route_name):
     """Bildirime vize bilgisi ekle (varsa)."""
     iso2 = _get_iso_by_city(route_name)
     if not iso2:
-        return msg + "\n🛂 ⚪ Vize bilgisi yok (ülke eşleşmedi)"
+        return msg + "\n🛂 ⚪ Vize bilinmiyor — ülke: ❓ (cities_to_countries'da yok)"
 
     vd = get_visa_details(iso2)
     if not vd:
