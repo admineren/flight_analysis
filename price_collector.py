@@ -111,15 +111,24 @@ def scan_route(route, now_str):
     visa_name = visa.get("name") if visa else ""
     visa_duration = visa.get("duration") if visa else ""
 
-    def _enrich(result, source):
-        if not result:
-            return None
-        result["source"] = source
-        result["passport"] = "TR"
+    print(
+        f"  🔍 Vize: IATA={route['dest']} → ISO={dest_iso or 'YOK'} → "
+        f"color={visa_color or 'YOK'}, name={visa_name or 'YOK'}",
+        flush=True,
+    )
+
+def _enrich(result, source):
+    if not result:
+        return None
+    result["source"] = source
+    result["passport"] = "TR"
+    if visa_color:
         result["visa_color"] = visa_color
+    if visa_name:
         result["visa_name"] = visa_name
+    if visa_duration:
         result["visa_duration"] = visa_duration
-        return result
+    return result
 
     if not _blocked_this_run:
         result, was_blocked = _try_viajante(route, route_id, now_str)
@@ -172,13 +181,26 @@ def _try_viajante(route, route_id, now_str):
             if q.price_insight and q.price_insight.typical_range:
                 typical_price = sum(q.price_insight.typical_range) / 2
 
-            # YENİ: Layover bilgisi
+            # Layover: önce üst seviye, yoksa legs'ten çıkar
             layover_city = getattr(best, "layover_city", None) or ""
             layover_hours = getattr(best, "layover_hours", None)
 
-            print(f"    📊 {best.price:,.0f} TRY | {airline} | {best.duration_hours:.1f}h | "
-                  f"{best.stops_count} akt | level: {price_level}"
-                  f"{f' | {layover_city} {layover_hours:.1f}h' if layover_city and layover_hours else ''}", flush=True)
+            if not layover_city and best.legs:
+                leg = best.legs[0]
+                if leg.layovers:
+                    first_layover = leg.layovers[0]
+                    layover_city = first_layover.city or ""
+                    layover_hours = first_layover.hours
+
+            layover_dbg = (
+                f" | {layover_city} {layover_hours:.1f}h"
+                if layover_city and layover_hours else ""
+            )
+            print(
+                f"    📊 {best.price:,.0f} TRY | {airline} | {best.duration_hours:.1f}h | "
+                f"{best.stops_count} akt | level: {price_level}{layover_dbg}",
+                flush=True,
+            )
 
             return {
                 "origin": route["origin"],
