@@ -28,11 +28,9 @@ WATCHLIST = [
     {"origin": "IST", "dest": "TBS", "depart": "2027-05-20", "ret": "2027-05-27"},
 ]
 
-# Retry bekleme süreleri (saniye) — exponential benzeri
-VIAJANTE_RETRY_DELAYS = [30, 90]   # 2 deneme daha, bekleme süreleri
-ROUTE_DELAY = 5                     # Rotalar arası bekleme
+VIAJANTE_RETRY_DELAYS = [30, 90]
+ROUTE_DELAY = 5
 
-# Global: bu run'da BLOCKED gördük mü? Kalan rotaları hızlıca Swoop'a geçir
 _blocked_this_run = False
 
 
@@ -97,7 +95,6 @@ def scan_route(route, now_str):
     route_id = f"{route['origin']}-{route['dest']}-{route['depart']}"
     print(f"\n[{route_id}] taranıyor...", flush=True)
 
-    # Vize bilgisi (rota bazlı)
     dest_iso = get_iso_by_iata(route["dest"])
     visa = get_visa_details(dest_iso) if dest_iso else None
     visa_color = visa.get("color") if visa else ""
@@ -114,7 +111,6 @@ def scan_route(route, now_str):
         result["visa_duration"] = visa_duration
         return result
 
-    # 1. Viajante (bu run'da BLOCKED görmediysek)
     if not _blocked_this_run:
         result, was_blocked = _try_viajante(route, route_id, now_str)
         if result:
@@ -125,7 +121,6 @@ def scan_route(route, now_str):
     else:
         print(f"  ⏭️  Viajante atlanıyor (bu run'da BLOCKED)", flush=True)
 
-    # 2. Swoop fallback
     print(f"  🔄 Swoop fallback deneniyor...", flush=True)
     result = _try_swoop(route, route_id, now_str)
     if result:
@@ -136,7 +131,6 @@ def scan_route(route, now_str):
 
 
 def _try_viajante(route, route_id, now_str):
-    """Viajante dener. Returns (result, was_blocked)."""
     trip = RoundTrip(
         origin=route["origin"],
         destination=route["dest"],
@@ -144,7 +138,6 @@ def _try_viajante(route, route_id, now_str):
         return_date=date.fromisoformat(route["ret"]),
         max_stops=1,
     )
-    # Deneme 0: hemen, sonra delays
     for attempt, delay in enumerate([0] + VIAJANTE_RETRY_DELAYS):
         if delay:
             print(f"  ⏳ {delay}s bekleniyor...", flush=True)
@@ -159,8 +152,8 @@ def _try_viajante(route, route_id, now_str):
                 err = getattr(q.error, "code", "unknown") if q.error else "no_query"
                 print(f"    ⚠️ {err}", flush=True)
                 if "BLOCKED" in str(err):
-                    continue  # retry
-                return None, False  # diğer hatalar retry'a değmez
+                    continue
+                return None, False
 
             best = q.offers[0]
             airline = ", ".join(dict.fromkeys(best.airline.split(", "))) if best.airline else "?"
@@ -169,8 +162,13 @@ def _try_viajante(route, route_id, now_str):
             if q.price_insight and q.price_insight.typical_range:
                 typical_price = sum(q.price_insight.typical_range) / 2
 
-            print(f"    📊 {best.price:,.0f} TRY | {airline} | {best.duration_hours:.1f}s | "
-                  f"{best.stops_count} akt | level: {price_level}", flush=True)
+            # YENİ: Layover bilgisi
+            layover_city = getattr(best, "layover_city", None) or ""
+            layover_hours = getattr(best, "layover_hours", None)
+
+            print(f"    📊 {best.price:,.0f} TRY | {airline} | {best.duration_hours:.1f}h | "
+                  f"{best.stops_count} akt | level: {price_level}"
+                  f"{f' | {layover_city} {layover_hours:.1f}h' if layover_city and layover_hours else ''}", flush=True)
 
             return {
                 "origin": route["origin"],
@@ -185,6 +183,8 @@ def _try_viajante(route, route_id, now_str):
                 "vs_typical_pct": best.vs_typical_pct,
                 "duration_hours": best.duration_hours or 0.0,
                 "stops": best.stops_count if best.stops_count is not None else 0,
+                "layover_city": layover_city,
+                "layover_hours": layover_hours,
                 "booking_url": best.google_flights_url or "",
                 "observed_at": now_str,
             }, False
@@ -192,12 +192,10 @@ def _try_viajante(route, route_id, now_str):
             print(f"    ❌ Hata: {str(e)[:100]}", flush=True)
             continue
 
-    # Tüm denemeler BLOCKED ile bitti
     return None, True
 
 
 def _try_swoop(route, route_id, now_str):
-    """Swoop fallback — temel veri. BLOCKED olmaz genelde."""
     try:
         print(f"  → Swoop", flush=True)
         out = swoop_search(
@@ -217,14 +215,22 @@ def _try_swoop(route, route_id, now_str):
         airline = "?"
         duration = 0.0
         stops = 0
+        layover_city = ""
+        layover_hours = None
         if best.legs:
             itin = best.legs[0].itinerary
             if itin:
                 airline = ", ".join(itin.airline_names) if itin.airline_names else "?"
                 duration = itin.travel_time / 60 if itin.travel_time else 0.0
                 stops = itin.stop_count or 0
+                # YENİ: Swoop'ta ilk layover'ı al
+                if itin.layovers:
+                    first_layover = itin.layovers[0]
+                    layover_city = first_layover.arrival_airport_city or first_layover.arrival_airport_code or ""
+                    layover_hours = first_layover.minutes / 60 if first_layover.minutes else None
 
-        print(f"    📊 {price:,.0f} TRY | {airline} | {duration:.1f}s | {stops} akt (swoop)", flush=True)
+        print(f"    📊 {price:,.0f} TRY | {airline} | {duration:.1f}h | {stops} akt (swoop)"
+              f"{f' | {layover_city} {layover_hours:.1f}h' if layover_city and layover_hours else ''}", flush=True)
 
         return {
             "origin": route["origin"],
@@ -239,6 +245,8 @@ def _try_swoop(route, route_id, now_str):
             "vs_typical_pct": None,
             "duration_hours": duration,
             "stops": stops,
+            "layover_city": layover_city,
+            "layover_hours": layover_hours,
             "booking_url": "",
             "observed_at": now_str,
         }
@@ -247,9 +255,6 @@ def _try_swoop(route, route_id, now_str):
         return None
 
 
-# ============================================================
-# KARAR: Değişim bazlı (mevcut)
-# ============================================================
 def should_save(candidate, last_state):
     if not last_state:
         return True, "ilk kayıt"
@@ -261,9 +266,6 @@ def should_save(candidate, last_state):
     return False, "değişiklik yok"
 
 
-# ============================================================
-# MAIN
-# ============================================================
 def main():
     global _blocked_this_run
     _blocked_this_run = False
