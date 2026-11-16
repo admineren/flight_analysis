@@ -18,14 +18,25 @@ TB_DATASOURCE = "price_history"
 STATE_FILE = os.path.join("data", "price_collector_state.json")
 
 WATCHLIST = [
-    {"origin": "IST", "dest": "BKK", "depart": "2027-02-15", "ret": "2027-02-22"},
-    {"origin": "IST", "dest": "DPS", "depart": "2027-03-10", "ret": "2027-03-17"},
-    {"origin": "IST", "dest": "KUL", "depart": "2027-03-01", "ret": "2027-03-08"},
-    {"origin": "IST", "dest": "SIN", "depart": "2027-03-15", "ret": "2027-03-22"},
-    {"origin": "IST", "dest": "HKG", "depart": "2027-04-10", "ret": "2027-04-17"},
-    {"origin": "IST", "dest": "HAN", "depart": "2027-04-20", "ret": "2027-04-27"},
-    {"origin": "IST", "dest": "MNL", "depart": "2027-05-05", "ret": "2027-05-12"},
-    {"origin": "IST", "dest": "TBS", "depart": "2027-05-20", "ret": "2027-05-27"},
+    # Uzak Doğu / Asya
+    {"origin": "IST", "dest": "BKK", "depart": "2027-02-15", "ret": "2027-02-22"},  # Bangkok
+    {"origin": "IST", "dest": "DPS", "depart": "2027-03-10", "ret": "2027-03-17"},  # Bali
+    {"origin": "IST", "dest": "KUL", "depart": "2027-03-01", "ret": "2027-03-08"},  # Kuala Lumpur
+    {"origin": "IST", "dest": "SIN", "depart": "2027-03-15", "ret": "2027-03-22"},  # Singapur
+    {"origin": "IST", "dest": "HKG", "depart": "2027-04-10", "ret": "2027-04-17"},  # Hong Kong
+    {"origin": "IST", "dest": "HAN", "depart": "2027-04-20", "ret": "2027-04-27"},  # Hanoi
+    {"origin": "IST", "dest": "MNL", "depart": "2027-05-05", "ret": "2027-05-12"},  # Manila
+
+    # Kafkasya
+    {"origin": "IST", "dest": "TBS", "depart": "2027-05-20", "ret": "2027-05-27"},  # Tiflis
+    {"origin": "IST", "dest": "GYD", "depart": "2027-02-20", "ret": "2027-02-27"},  # Bakü
+
+    # Avrupa (vizesiz)
+    {"origin": "IST", "dest": "BEG", "depart": "2027-03-05", "ret": "2027-03-12"},  # Belgrad
+    {"origin": "IST", "dest": "TIA", "depart": "2027-04-05", "ret": "2027-04-12"},  # Tiran
+
+    # Orta Asya
+    {"origin": "IST", "dest": "TAS", "depart": "2027-05-10", "ret": "2027-05-17"},  # Taşkent
 ]
 
 VIAJANTE_RETRY_DELAYS = [30, 90]
