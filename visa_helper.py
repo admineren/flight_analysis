@@ -171,7 +171,7 @@ def get_visa_details(iso2, trip_days=None):
                     "duration": None,
                     "link": None,
                     "passport_validity": None,
-                    "warnings": ["⚠️ Detay verisi yok, sadece renk bilgisi"],
+                    "warnings": ["ℹ️ Detay henüz çekilmedi — süre/pasaport kontrolü yok"],
                     "regs": [],
                     "exceptions": [],
                     "continent": None,
