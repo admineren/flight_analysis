@@ -23,3 +23,26 @@ SCHEMA >
 
 ENGINE "ReplacingMergeTree"
 ENGINE_SORTING_KEY "passport, origin, destination, departure_date, return_date, observed_at"
+
+FORWARD_QUERY >
+    SELECT
+        '' AS passport,
+        origin,
+        destination,
+        departure_date,
+        return_date,
+        airline,
+        price,
+        currency,
+        price_level,
+        0 AS typical_price,
+        0 AS vs_typical_pct,
+        duration_hours,
+        stops,
+        '' AS visa_color,
+        '' AS visa_name,
+        '' AS visa_duration,
+        '' AS booking_url,
+        source,
+        observed_at
+    FROM price_history
