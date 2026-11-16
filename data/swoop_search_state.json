@@ -1,15 +1,16 @@
 {
   "IST → Almatı|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 20151,
+    "last_tl": 20660,
     "threshold": 21158,
     "threshold_source": "google-low"
   },
   "IST → Almatı|history": {
     "prices": [
-      20151
+      20151,
+      20660
     ],
-    "updated_at": "2026-11-16T17:48:42.902664+00:00"
+    "updated_at": "2026-11-16T23:53:59.741593+00:00"
   },
   "IST → Baku|2027-01-09|2027-01-14": {
     "below_threshold": false,
@@ -45,39 +46,42 @@
   },
   "IST → Baku|2027-02-14|2027-02-21": {
     "below_threshold": true,
-    "last_tl": 11028,
-    "threshold": 11579,
+    "last_tl": 11020,
+    "threshold": 11571,
     "threshold_source": "google-low"
   },
   "IST → Baku|history": {
     "prices": [
-      11028
+      11028,
+      11020
     ],
-    "updated_at": "2026-11-16T17:47:41.343415+00:00"
+    "updated_at": "2026-11-16T23:53:09.656357+00:00"
   },
   "IST → Bali|2027-04-15|2027-04-25": {
     "below_threshold": true,
-    "last_tl": 43115,
-    "threshold": 45270,
+    "last_tl": 43034,
+    "threshold": 45185,
     "threshold_source": "google-low"
   },
   "IST → Bali|history": {
     "prices": [
-      43115
+      43115,
+      43034
     ],
-    "updated_at": "2026-11-16T17:48:50.517803+00:00"
+    "updated_at": "2026-11-16T23:54:06.351601+00:00"
   },
   "IST → Bangkok|2027-04-15|2027-04-25": {
     "below_threshold": true,
-    "last_tl": 29141,
+    "last_tl": 29153,
     "threshold": 30598,
     "threshold_source": "google-low"
   },
   "IST → Bangkok|history": {
     "prices": [
-      29141
+      29141,
+      29153
     ],
-    "updated_at": "2026-11-16T17:48:46.702972+00:00"
+    "updated_at": "2026-11-16T23:54:03.069047+00:00"
   },
   "IST → Belgrad|2027-01-09|2027-01-16": {
     "below_threshold": false,
@@ -109,63 +113,68 @@
   },
   "IST → Belgrad|2027-02-14|2027-02-21": {
     "below_threshold": true,
-    "last_tl": 12529,
-    "threshold": 13155,
+    "last_tl": 12574,
+    "threshold": 13178,
     "threshold_source": "google-low"
   },
   "IST → Belgrad|history": {
     "prices": [
-      12529
+      12529,
+      12574
     ],
-    "updated_at": "2026-11-16T17:47:50.113411+00:00"
+    "updated_at": "2026-11-16T23:53:12.868478+00:00"
   },
   "IST → Hanoi|2027-04-15|2027-04-25": {
     "below_threshold": false,
-    "last_tl": 44886,
+    "last_tl": 44904,
     "threshold": 44597,
     "threshold_source": "google-low"
   },
   "IST → Hanoi|history": {
     "prices": [
-      44886
+      44886,
+      44904
     ],
-    "updated_at": "2026-11-16T17:49:01.407525+00:00"
+    "updated_at": "2026-11-16T23:54:16.120617+00:00"
   },
   "IST → Hong Kong|2027-04-15|2027-04-25": {
     "below_threshold": false,
-    "last_tl": 46711,
+    "last_tl": 46733,
     "threshold": 46334,
     "threshold_source": "google-low"
   },
   "IST → Hong Kong|history": {
     "prices": [
-      46711
+      46711,
+      46733
     ],
-    "updated_at": "2026-11-16T17:49:08.535597+00:00"
+    "updated_at": "2026-11-16T23:54:22.540294+00:00"
   },
   "IST → Kuala Lumpur|2027-04-15|2027-04-25": {
     "below_threshold": true,
-    "last_tl": 29259,
-    "threshold": 30179,
+    "last_tl": 29767,
+    "threshold": 31255,
     "threshold_source": "google-low"
   },
   "IST → Kuala Lumpur|history": {
     "prices": [
-      29259
+      29259,
+      29767
     ],
-    "updated_at": "2026-11-16T17:48:54.343248+00:00"
+    "updated_at": "2026-11-16T23:54:09.686310+00:00"
   },
   "IST → Manila|2027-04-15|2027-04-25": {
     "below_threshold": true,
-    "last_tl": 31517,
+    "last_tl": 31535,
     "threshold": 33092,
     "threshold_source": "google-low"
   },
   "IST → Manila|history": {
     "prices": [
-      31517
+      31517,
+      31535
     ],
-    "updated_at": "2026-11-16T17:49:05.217264+00:00"
+    "updated_at": "2026-11-16T23:54:19.311049+00:00"
   },
   "IST → Minsk|2027-01-09|2027-01-16": {
     "below_threshold": false,
@@ -197,27 +206,29 @@
   },
   "IST → Podgoritsa|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 9590,
+    "last_tl": 9579,
     "threshold": 10042,
     "threshold_source": "google-low"
   },
   "IST → Podgoritsa|history": {
     "prices": [
-      9590
+      9590,
+      9579
     ],
-    "updated_at": "2026-11-16T17:48:05.367892+00:00"
+    "updated_at": "2026-11-16T23:53:25.692317+00:00"
   },
   "IST → Riga|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 9503,
-    "threshold": 9978,
+    "last_tl": 9502,
+    "threshold": 9977,
     "threshold_source": "google-low"
   },
   "IST → Riga|history": {
     "prices": [
-      9503
+      9503,
+      9502
     ],
-    "updated_at": "2026-11-16T17:48:09.160584+00:00"
+    "updated_at": "2026-11-16T23:53:28.847533+00:00"
   },
   "IST → Saraybosna|2027-01-09|2027-01-16": {
     "below_threshold": false,
@@ -249,51 +260,55 @@
   },
   "IST → Saraybosna|2027-02-14|2027-02-21": {
     "below_threshold": true,
-    "last_tl": 8078,
+    "last_tl": 8067,
     "threshold": 8461,
     "threshold_source": "google-low"
   },
   "IST → Saraybosna|history": {
     "prices": [
-      8078
+      8078,
+      8067
     ],
-    "updated_at": "2026-11-16T17:47:54.005247+00:00"
+    "updated_at": "2026-11-16T23:53:16.066377+00:00"
   },
   "IST → Singapur|2027-04-15|2027-04-25": {
     "below_threshold": true,
-    "last_tl": 36129,
-    "threshold": 37849,
+    "last_tl": 36667,
+    "threshold": 38414,
     "threshold_source": "google-low"
   },
   "IST → Singapur|history": {
     "prices": [
-      36129
+      36129,
+      36667
     ],
-    "updated_at": "2026-11-16T17:48:58.108218+00:00"
+    "updated_at": "2026-11-16T23:54:12.908278+00:00"
   },
   "IST → Tallinn|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 9996,
-    "threshold": 10495,
+    "last_tl": 9995,
+    "threshold": 10494,
     "threshold_source": "google-low"
   },
   "IST → Tallinn|history": {
     "prices": [
-      9996
+      9996,
+      9995
     ],
-    "updated_at": "2026-11-16T17:48:27.780006+00:00"
+    "updated_at": "2026-11-16T23:53:46.775498+00:00"
   },
   "IST → Taşkent|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 21806,
-    "threshold": 22694,
+    "last_tl": 21997,
+    "threshold": 22672,
     "threshold_source": "google-low"
   },
   "IST → Taşkent|history": {
     "prices": [
-      21806
+      21806,
+      21997
     ],
-    "updated_at": "2026-11-16T17:48:39.163306+00:00"
+    "updated_at": "2026-11-16T23:53:56.537922+00:00"
   },
   "IST → Tbilisi|2027-01-09|2027-01-14": {
     "below_threshold": false,
@@ -329,62 +344,67 @@
   },
   "IST → Tbilisi|2027-02-14|2027-02-21": {
     "below_threshold": true,
-    "last_tl": 8464,
-    "threshold": 8887,
+    "last_tl": 8463,
+    "threshold": 8886,
     "threshold_source": "google-low"
   },
   "IST → Tbilisi|history": {
     "prices": [
-      8464
+      8464,
+      8463
     ],
-    "updated_at": "2026-11-16T17:47:37.614540+00:00"
+    "updated_at": "2026-11-16T23:53:06.475357+00:00"
   },
   "IST → Tiran|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 8954,
+    "last_tl": 9154,
     "threshold": 9401,
     "threshold_source": "google-low"
   },
   "IST → Tiran|history": {
     "prices": [
-      8954
+      8954,
+      9154
     ],
-    "updated_at": "2026-11-16T17:47:57.747541+00:00"
+    "updated_at": "2026-11-16T23:53:19.285222+00:00"
   },
   "IST → Vilnius|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 9483,
-    "threshold": 9957,
+    "last_tl": 9481,
+    "threshold": 9955,
     "threshold_source": "google-low"
   },
   "IST → Vilnius|history": {
     "prices": [
-      9483
+      9483,
+      9481
     ],
-    "updated_at": "2026-11-16T17:48:31.640327+00:00"
+    "updated_at": "2026-11-16T23:53:50.080309+00:00"
   },
   "IST → Zürih|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 11601,
+    "last_tl": 11581,
     "threshold": 12148,
     "threshold_source": "google-low"
   },
   "IST → Zürih|history": {
     "prices": [
-      11601
+      11601,
+      11581
     ],
-    "updated_at": "2026-11-16T17:48:35.401088+00:00"
+    "updated_at": "2026-11-16T23:53:53.332261+00:00"
   },
   "IST → Üsküp|2027-03-16|2027-03-23": {
     "below_threshold": true,
-    "last_tl": 8473,
+    "last_tl": 8772,
     "threshold": 8896,
     "threshold_source": "google-low"
   },
   "IST → Üsküp|history": {
     "prices": [
-      8473
+      8473,
+      8772
     ],
-    "updated_at": "2026-11-16T17:48:01.600118+00:00"
+    "updated_at": "2026-11-16T23:53:22.494024+00:00"
   }
 }
