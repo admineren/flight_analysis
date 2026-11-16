@@ -324,8 +324,10 @@ def cmd_firsatlar(args):
     if isinstance(data, dict):
         if "deals" in data and isinstance(data["deals"], list):
             deals = data["deals"]
-        elif all(isinstance(v, dict) for v in data.values()):
-            deals = list(data.values())
+        else:
+            for v in data.values():
+                if isinstance(v, dict) and ("origin" in v or "destination" in v):
+                    deals.append(v)
     elif isinstance(data, list):
         deals = data
 
