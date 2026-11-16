@@ -17,6 +17,8 @@ SQL >
         vs_typical_pct,
         duration_hours,
         stops,
+        layover_city,
+        layover_hours,
         visa_color,
         visa_name,
         visa_duration,
