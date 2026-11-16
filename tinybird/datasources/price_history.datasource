@@ -26,7 +26,7 @@ ENGINE_SORTING_KEY "passport, origin, destination, departure_date, return_date, 
 
 FORWARD_QUERY >
     SELECT
-        '' AS passport,
+        defaultValueOfTypeName('String') AS passport,
         origin,
         destination,
         departure_date,
@@ -35,13 +35,13 @@ FORWARD_QUERY >
         price,
         currency,
         price_level,
-        0 AS typical_price,
-        0 AS vs_typical_pct,
+        defaultValueOfTypeName('Float64') AS typical_price,
+        defaultValueOfTypeName('Int32') AS vs_typical_pct,
         duration_hours,
         stops,
-        '' AS visa_color,
-        '' AS visa_name,
-        '' AS visa_duration,
-        '' AS booking_url,
+        defaultValueOfTypeName('String') AS visa_color,
+        defaultValueOfTypeName('String') AS visa_name,
+        defaultValueOfTypeName('String') AS visa_duration,
+        defaultValueOfTypeName('String') AS booking_url,
         source,
         observed_at
