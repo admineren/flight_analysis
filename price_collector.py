@@ -111,32 +111,36 @@ def scan_route(route, now_str):
     visa_name = visa.get("name") if visa else ""
     visa_duration = visa.get("duration") if visa else ""
 
+    # Debug (1 run sonra kaldırılabilir)
     print(
         f"  🔍 Vize: IATA={route['dest']} → ISO={dest_iso or 'YOK'} → "
         f"color={visa_color or 'YOK'}, name={visa_name or 'YOK'}",
         flush=True,
     )
 
-def _enrich(result, source):
-    if not result:
-        return None
-    result["source"] = source
-    result["passport"] = "TR"
-    if visa_color:
-        result["visa_color"] = visa_color
-    if visa_name:
-        result["visa_name"] = visa_name
-    if visa_duration:
-        result["visa_duration"] = visa_duration
-    return result
+    def _enrich(result, source):
+        if not result:
+            return None
+        result["source"] = source
+        result["passport"] = "TR"
+        if visa_color:
+            result["visa_color"] = visa_color
+        if visa_name:
+            result["visa_name"] = visa_name
+        if visa_duration:
+            result["visa_duration"] = visa_duration
+        return result
 
     if not _blocked_this_run:
+        print(f"  🔄 Viajante çağrılıyor...", flush=True)   # ← EK DEBUG
         result, was_blocked = _try_viajante(route, route_id, now_str)
         if result:
             return _enrich(result, "viajante")
         if was_blocked:
             _blocked_this_run = True
             print(f"  🚫 Bu run'da BLOCKED tespit edildi, sonraki rotalar Swoop'a geçecek", flush=True)
+        else:
+            print(f"  ⚠️ Viajante sonuç döndürmedi (BLOCKED değil)", flush=True)   # ← EK DEBUG
     else:
         print(f"  ⏭️  Viajante atlanıyor (bu run'da BLOCKED)", flush=True)
 
@@ -147,7 +151,6 @@ def _enrich(result, source):
 
     print(f"  ❌ {route_id} her iki kaynakta da başarısız.", flush=True)
     return None
-
 
 def _try_viajante(route, route_id, now_str):
     trip = RoundTrip(
@@ -165,6 +168,7 @@ def _try_viajante(route, route_id, now_str):
             print(f"  → Viajante (Deneme {attempt+1}/{1 + len(VIAJANTE_RETRY_DELAYS)})", flush=True)
             report = get_flights(trip, fetch="sweep", top=1, currency="TRY", deadline_seconds=60)
             if not report.queries:
+                print(f"    ⚠️ queries boş", flush=True)
                 return None, False
             q = report.queries[0]
             if q.status != "ok" or not q.offers:
@@ -221,7 +225,7 @@ def _try_viajante(route, route_id, now_str):
                 "observed_at": now_str,
             }, False
         except Exception as e:
-            print(f"    ❌ Hata: {str(e)[:100]}", flush=True)
+            print(f"    ❌ Hata: {type(e).__name__}: {str(e)[:100]}", flush=True)
             continue
 
     return None, True
