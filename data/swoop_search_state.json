@@ -13,7 +13,7 @@
   },
   "IST → Almatı|2027-03-18|2027-03-25": {
     "below_threshold": true,
-    "last_tl": 19948,
+    "last_tl": 19958,
     "threshold": 20908,
     "threshold_source": "google-low"
   },
@@ -23,9 +23,10 @@
       20660,
       20393,
       20393,
-      19948
+      19948,
+      19958
     ],
-    "updated_at": "2026-11-18T12:23:44.342506+00:00"
+    "updated_at": "2026-11-18T22:44:48.446246+00:00"
   },
   "IST → Baku|2027-01-09|2027-01-14": {
     "below_threshold": false,
@@ -83,9 +84,10 @@
       11020,
       11020,
       11020,
+      10472,
       10472
     ],
-    "updated_at": "2026-11-18T12:22:52.116007+00:00"
+    "updated_at": "2026-11-18T22:44:28.904665+00:00"
   },
   "IST → Bali|2027-04-15|2027-04-25": {
     "below_threshold": true,
@@ -99,13 +101,20 @@
     "threshold": 45209,
     "threshold_source": "google-low"
   },
+  "IST → Bali|2027-04-17|2027-04-27": {
+    "below_threshold": true,
+    "last_tl": 43039,
+    "threshold": 45190,
+    "threshold_source": "google-low"
+  },
   "IST → Bali|history": {
     "prices": [
       43115,
       43034,
-      43057
+      43057,
+      43039
     ],
-    "updated_at": "2026-11-17T17:09:41.078219+00:00"
+    "updated_at": "2026-11-18T22:44:55.685679+00:00"
   },
   "IST → Bangkok|2027-04-15|2027-04-25": {
     "below_threshold": true,
@@ -131,9 +140,10 @@
       29153,
       28650,
       28650,
+      29737,
       29737
     ],
-    "updated_at": "2026-11-18T12:23:48.331124+00:00"
+    "updated_at": "2026-11-18T22:44:51.940073+00:00"
   },
   "IST → Belgrad|2027-01-09|2027-01-16": {
     "below_threshold": false,
@@ -177,7 +187,7 @@
   },
   "IST → Belgrad|2027-02-16|2027-02-23": {
     "below_threshold": true,
-    "last_tl": 12324,
+    "last_tl": 12330,
     "threshold": 12931,
     "threshold_source": "google-low"
   },
@@ -187,9 +197,10 @@
       12574,
       12581,
       12581,
-      12324
+      12324,
+      12330
     ],
-    "updated_at": "2026-11-18T12:22:55.727617+00:00"
+    "updated_at": "2026-11-18T22:44:32.165216+00:00"
   },
   "IST → Hanoi|2027-04-15|2027-04-25": {
     "below_threshold": false,
@@ -205,8 +216,8 @@
   },
   "IST → Hanoi|2027-04-17|2027-04-27": {
     "below_threshold": true,
-    "last_tl": 43204,
-    "threshold": 45253,
+    "last_tl": 43223,
+    "threshold": 45364,
     "threshold_source": "google-low"
   },
   "IST → Hanoi|history": {
@@ -214,9 +225,10 @@
       44886,
       44904,
       42565,
-      43204
+      43204,
+      43223
     ],
-    "updated_at": "2026-11-18T12:24:17.843556+00:00"
+    "updated_at": "2026-11-18T22:45:05.802268+00:00"
   },
   "IST → Hong Kong|2027-04-15|2027-04-25": {
     "below_threshold": false,
@@ -232,7 +244,7 @@
   },
   "IST → Hong Kong|2027-04-17|2027-04-27": {
     "below_threshold": true,
-    "last_tl": 46823,
+    "last_tl": 46845,
     "threshold": 49069,
     "threshold_source": "google-low"
   },
@@ -241,9 +253,10 @@
       46711,
       46733,
       46733,
-      46823
+      46823,
+      46845
     ],
-    "updated_at": "2026-11-18T12:24:25.369565+00:00"
+    "updated_at": "2026-11-18T22:45:12.511571+00:00"
   },
   "IST → Kuala Lumpur|2027-04-15|2027-04-25": {
     "below_threshold": true,
@@ -259,8 +272,8 @@
   },
   "IST → Kuala Lumpur|2027-04-17|2027-04-27": {
     "below_threshold": true,
-    "last_tl": 30328,
-    "threshold": 31844,
+    "last_tl": 30323,
+    "threshold": 31839,
     "threshold_source": "google-low"
   },
   "IST → Kuala Lumpur|history": {
@@ -269,9 +282,10 @@
       29767,
       30228,
       30234,
-      30328
+      30328,
+      30323
     ],
-    "updated_at": "2026-11-18T12:24:05.304241+00:00"
+    "updated_at": "2026-11-18T22:44:59.083298+00:00"
   },
   "IST → Manila|2027-04-15|2027-04-25": {
     "below_threshold": true,
@@ -287,7 +301,7 @@
   },
   "IST → Manila|2027-04-17|2027-04-27": {
     "below_threshold": true,
-    "last_tl": 31577,
+    "last_tl": 31588,
     "threshold": 33111,
     "threshold_source": "google-low"
   },
@@ -296,9 +310,10 @@
       31517,
       31535,
       31535,
-      31577
+      31577,
+      31588
     ],
-    "updated_at": "2026-11-18T12:24:21.704173+00:00"
+    "updated_at": "2026-11-18T22:45:09.161832+00:00"
   },
   "IST → Minsk|2027-01-09|2027-01-16": {
     "below_threshold": false,
@@ -426,7 +441,7 @@
   },
   "IST → Saraybosna|2027-02-16|2027-02-23": {
     "below_threshold": true,
-    "last_tl": 8071,
+    "last_tl": 8075,
     "threshold": 8459,
     "threshold_source": "google-low"
   },
@@ -435,9 +450,10 @@
       8078,
       8067,
       8071,
-      8071
+      8071,
+      8075
     ],
-    "updated_at": "2026-11-18T12:23:04.612140+00:00"
+    "updated_at": "2026-11-18T22:44:35.415006+00:00"
   },
   "IST → Singapur|2027-04-15|2027-04-25": {
     "below_threshold": true,
@@ -453,8 +469,8 @@
   },
   "IST → Singapur|2027-04-17|2027-04-27": {
     "below_threshold": true,
-    "last_tl": 36717,
-    "threshold": 38552,
+    "last_tl": 35763,
+    "threshold": 37551,
     "threshold_source": "google-low"
   },
   "IST → Singapur|history": {
@@ -462,9 +478,10 @@
       36129,
       36667,
       36693,
-      36717
+      36717,
+      35763
     ],
-    "updated_at": "2026-11-18T12:24:14.148365+00:00"
+    "updated_at": "2026-11-18T22:45:02.479627+00:00"
   },
   "IST → Tallinn|2027-03-16|2027-03-23": {
     "below_threshold": true,
@@ -508,8 +525,8 @@
   },
   "IST → Taşkent|2027-03-18|2027-03-25": {
     "below_threshold": true,
-    "last_tl": 24458,
-    "threshold": 25680,
+    "last_tl": 24469,
+    "threshold": 25692,
     "threshold_source": "google-low"
   },
   "IST → Taşkent|history": {
@@ -518,9 +535,10 @@
       21997,
       24410,
       24410,
-      24458
+      24458,
+      24469
     ],
-    "updated_at": "2026-11-18T12:23:40.612636+00:00"
+    "updated_at": "2026-11-18T22:44:45.224083+00:00"
   },
   "IST → Tbilisi|2027-01-09|2027-01-14": {
     "below_threshold": false,
@@ -568,7 +586,7 @@
   },
   "IST → Tbilisi|2027-02-16|2027-02-23": {
     "below_threshold": true,
-    "last_tl": 8475,
+    "last_tl": 8477,
     "threshold": 8898,
     "threshold_source": "google-low"
   },
@@ -578,9 +596,10 @@
       8463,
       8463,
       8463,
-      8475
+      8475,
+      8477
     ],
-    "updated_at": "2026-11-18T12:22:48.492540+00:00"
+    "updated_at": "2026-11-18T22:44:25.707687+00:00"
   },
   "IST → Tiran|2027-03-16|2027-03-23": {
     "below_threshold": true,
@@ -596,8 +615,8 @@
   },
   "IST → Tiran|2027-03-18|2027-03-25": {
     "below_threshold": true,
-    "last_tl": 9165,
-    "threshold": 9611,
+    "last_tl": 9166,
+    "threshold": 9623,
     "threshold_source": "google-low"
   },
   "IST → Tiran|history": {
@@ -606,9 +625,10 @@
       9154,
       8823,
       8828,
-      9165
+      9165,
+      9166
     ],
-    "updated_at": "2026-11-18T12:23:08.212353+00:00"
+    "updated_at": "2026-11-18T22:44:38.691460+00:00"
   },
   "IST → Vilnius|2027-03-16|2027-03-23": {
     "below_threshold": true,
@@ -680,7 +700,7 @@
   "IST → Üsküp|2027-03-18|2027-03-25": {
     "below_threshold": true,
     "last_tl": 9034,
-    "threshold": 9474,
+    "threshold": 9485,
     "threshold_source": "google-low"
   },
   "IST → Üsküp|history": {
@@ -689,8 +709,9 @@
       8772,
       8772,
       8772,
+      9034,
       9034
     ],
-    "updated_at": "2026-11-18T12:23:11.873671+00:00"
+    "updated_at": "2026-11-18T22:44:41.948326+00:00"
   }
 }
