@@ -142,13 +142,11 @@ def scan_route(route, now_str):
             return None
         result["source"] = source
         result["passport"] = "TR"
-        if visa_color:
-            result["visa_color"] = visa_color
-        if visa_name:
-            result["visa_name"] = visa_name
-        if visa_duration:
-            result["visa_duration"] = visa_duration
+        result["visa_color"] = visa_color or ""
+        result["visa_name"] = visa_name or ""
+        result["visa_duration"] = visa_duration or ""
         return result
+            
 
     if not _blocked_this_run:
         print(f"  🔄 Viajante çağrılıyor...", flush=True)   # ← EK DEBUG
@@ -234,12 +232,12 @@ def _try_viajante(route, route_id, now_str):
                 "price": round(float(best.price), 2),
                 "currency": "TRY",
                 "price_level": price_level,
-                "typical_price": round(typical_price, 2) if typical_price else None,
-                "vs_typical_pct": best.vs_typical_pct,
+                "typical_price": round(typical_price, 2) if typical_price is not None else 0.0,
+                "vs_typical_pct": int(best.vs_typical_pct) if best.vs_typical_pct is not None else 0,
                 "duration_hours": round(best.duration_hours, 2) if best.duration_hours else 0.0,
                 "stops": best.stops_count if best.stops_count is not None else 0,
                 "layover_city": layover_city,
-                "layover_hours": round(layover_hours, 2) if layover_hours else None,
+                "layover_hours": round(layover_hours, 2) if layover_hours is not None else 0.0,
                 "booking_url": best.google_flights_url or "",
                 "observed_at": now_str,
             }, False
@@ -296,12 +294,12 @@ def _try_swoop(route, route_id, now_str):
             "price": round(float(price), 2),
             "currency": "TRY",
             "price_level": "unknown",
-            "typical_price": None,
-            "vs_typical_pct": None,
+            "typical_price": 0.0,
+            "vs_typical_pct": 0,
             "duration_hours": round(duration, 2) if duration else 0.0,
             "stops": stops,
-            "layover_city": layover_city,
-            "layover_hours": round(layover_hours, 2) if layover_hours else None,
+            "layover_city": layover_city or "",
+            "layover_hours": round(layover_hours, 2) if layover_hours is not None else 0.0,
             "booking_url": "",
             "observed_at": now_str,
         }
