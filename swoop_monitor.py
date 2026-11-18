@@ -43,18 +43,6 @@ GOOGLE_FLIGHTS_WATCH = [
      "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 9500},
     {"name": "IST → Üsküp", "origin": "IST", "destination": "SKP",
      "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 9000},
-    {"name": "IST → Podgoritsa", "origin": "IST", "destination": "TGD",
-     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10000},
-
-    # --- Kuzey Avrupa / Schengen (120 gün) ---
-    {"name": "IST → Riga", "origin": "IST", "destination": "RIX",
-     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 9500},
-    {"name": "IST → Tallinn", "origin": "IST", "destination": "TLL",
-     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10500},
-    {"name": "IST → Vilnius", "origin": "IST", "destination": "VNO",
-     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10000},
-    {"name": "IST → Zürih", "origin": "IST", "destination": "ZRH",
-     "departure_offset_days": 120, "stay_days": 7, "max_price_tl": 10500},
 
     # --- Orta Asya (120 gün) ---
     {"name": "IST → Taşkent", "origin": "IST", "destination": "TAS",
